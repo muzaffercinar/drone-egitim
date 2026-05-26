@@ -49,8 +49,8 @@ async function handleRegister(e) {
             name, email, role,
             level: 1, totalMissions: 0, bestGrade: 'F',
             totalDistance: 0, totalPhotos: 0,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            lastActive: firebase.firestore.FieldValue.serverTimestamp()
+            createdAt: Date.now(),
+            lastActive: Date.now()
         });
         logConsole(`✅ Kayıt başarılı: ${name}`);
     } catch (err) {
