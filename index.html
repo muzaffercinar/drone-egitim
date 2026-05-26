@@ -5,213 +5,192 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🚁 Drone Eğitim Platformu</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <!-- Firebase SDK -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 </head>
 <body>
-    <!-- ═══ GİRİŞ EKRANI ═══ -->
+    <!-- ═══ GİRİŞ ═══ -->
     <div id="auth-screen" class="screen active">
         <div class="auth-container">
             <div class="auth-header">
                 <div class="drone-icon">🚁</div>
                 <h1>Drone Eğitim Platformu</h1>
-                <p class="subtitle">Uçuşa hazır mısın?</p>
+                <p class="subtitle">Gökyüzüne hazır mısın?</p>
             </div>
-
             <div class="auth-tabs">
                 <button class="tab-btn active" onclick="showTab('login')">Giriş Yap</button>
                 <button class="tab-btn" onclick="showTab('register')">Kayıt Ol</button>
             </div>
-
-            <!-- Giriş Formu -->
             <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
-                <div class="input-group">
-                    <label>📧 E-posta</label>
-                    <input type="email" id="login-email" required placeholder="ornek@okul.com">
-                </div>
-                <div class="input-group">
-                    <label>🔒 Şifre</label>
-                    <input type="password" id="login-password" required placeholder="••••••••">
-                </div>
+                <div class="input-group"><label>📧 E-posta</label><input type="email" id="login-email" required placeholder="ornek@okul.com"></div>
+                <div class="input-group"><label>🔒 Şifre</label><input type="password" id="login-password" required placeholder="••••••••"></div>
                 <button type="submit" class="btn btn-primary">Giriş Yap ▶</button>
             </form>
-
-            <!-- Kayıt Formu -->
             <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
-                <div class="input-group">
-                    <label>👤 Ad Soyad</label>
-                    <input type="text" id="reg-name" required placeholder="Ahmet Yılmaz">
-                </div>
-                <div class="input-group">
-                    <label>📧 E-posta</label>
-                    <input type="email" id="reg-email" required placeholder="ornek@okul.com">
-                </div>
-                <div class="input-group">
-                    <label>🔒 Şifre (min 6 karakter)</label>
-                    <input type="password" id="reg-password" required minlength="6" placeholder="••••••••">
-                </div>
+                <div class="input-group"><label>👤 Ad Soyad</label><input type="text" id="reg-name" required placeholder="Ahmet Yılmaz"></div>
+                <div class="input-group"><label>📧 E-posta</label><input type="email" id="reg-email" required placeholder="ornek@okul.com"></div>
+                <div class="input-group"><label>🔒 Şifre (min 6)</label><input type="password" id="reg-password" required minlength="6" placeholder="••••••••"></div>
                 <button type="submit" class="btn btn-green">Kayıt Ol ✓</button>
             </form>
-
             <div id="auth-error" class="error-msg hidden"></div>
             <div id="auth-loading" class="loading hidden">⏳ Yükleniyor...</div>
         </div>
     </div>
 
-    <!-- ═══ ÖĞRENCİ PANELİ ═══ -->
+    <!-- ═══ ÖĞRENCİ ANA EKRAN ═══ -->
     <div id="student-screen" class="screen">
         <nav class="topbar">
             <div class="topbar-left">
                 <span class="logo">🚁 Drone Eğitim</span>
                 <span id="student-name" class="user-name"></span>
             </div>
+            <div class="topbar-center">
+                <button class="nav-btn active" onclick="showStudentTab('map')" id="nav-map">🗺️ Görev Haritası</button>
+                <button class="nav-btn" onclick="showStudentTab('sim')" id="nav-sim">🎮 Simülasyon</button>
+                <button class="nav-btn" onclick="showStudentTab('badges')" id="nav-badges">🏅 Rozetler</button>
+                <button class="nav-btn" onclick="showStudentTab('design')" id="nav-design">🔧 Tasarla</button>
+            </div>
             <div class="topbar-right">
                 <span id="student-level" class="badge badge-level">Seviye 1</span>
-                <span id="student-badges" class="badge badge-count">🏅 0</span>
                 <button onclick="logout()" class="btn btn-sm btn-dim">Çıkış</button>
             </div>
         </nav>
 
-        <div class="student-layout">
-            <!-- Sol: Kontroller -->
-            <aside class="panel panel-left">
-                <div class="panel-section">
-                    <h3>⚙ Drone Ayarları</h3>
-                    <div class="input-group compact">
-                        <label>İsim</label>
-                        <input type="text" id="drone-name" value="EduDrone-1">
-                    </div>
-                    <div class="input-group compact">
-                        <label>Batarya (mAh)</label>
-                        <input type="number" id="drone-battery" value="5000">
-                    </div>
-                    <div class="input-group compact">
-                        <label>Maks Yükseklik (m)</label>
-                        <input type="number" id="drone-maxalt" value="50">
-                    </div>
-                    <div class="checkbox-row">
-                        <label><input type="checkbox" id="drone-camera" checked> 📷 Kamera</label>
-                        <label><input type="checkbox" id="drone-gps" checked> 📡 GPS</label>
-                    </div>
+        <!-- TAB: Görev Haritası -->
+        <div id="tab-map" class="tab-content active">
+            <div class="map-container">
+                <div class="map-header">
+                    <h2>🗺️ Görev Haritası</h2>
+                    <p class="dim-text">Görevleri tamamla, yeni seviyeleri aç!</p>
                 </div>
+                <div id="mission-map" class="mission-map"></div>
+            </div>
+        </div>
 
-                <div class="panel-section">
-                    <h3>🧩 Blok Programlama</h3>
-                    <div class="block-palette">
-                        <button class="block-btn" style="background:#6e7681" onclick="addBlock('MOTOR_AC')">⚙️ Motor Aç</button>
-                        <button class="block-btn" style="background:#238636" onclick="addBlock('HAVALAN')">🚀 Havalan</button>
-                        <button class="block-btn" style="background:#1f6feb" onclick="addBlock('ROTA_GIT')">📍 Git</button>
-                        <button class="block-btn" style="background:#8b5cf6" onclick="addBlock('FOTO_CEK')">📸 Foto</button>
-                        <button class="block-btn" style="background:#d29922" onclick="addBlock('BEKLE')">⏳ Bekle</button>
-                        <button class="block-btn" style="background:#f0883e" onclick="addBlock('KARGO_BIRAK')">📦 Kargo</button>
-                        <button class="block-btn" style="background:#f85149" onclick="addBlock('IN_YAP')">🔽 İniş</button>
+        <!-- TAB: Simülasyon -->
+        <div id="tab-sim" class="tab-content">
+            <div class="sim-layout">
+                <aside class="panel panel-left">
+                    <!-- Görev brifing -->
+                    <div id="briefing-box" class="panel-section briefing-box">
+                        <h3 id="mission-title">📋 Görev Seçin</h3>
+                        <p id="mission-briefing" class="brief-text">Görev haritasından bir görev seçin.</p>
+                        <div id="mission-objectives" class="objectives-list"></div>
+                        <div id="mission-hint" class="hint-box hidden">💡 <span id="hint-text"></span></div>
                     </div>
-                    <div id="block-program" class="block-program"></div>
-                    <div class="btn-row">
-                        <button onclick="clearBlocks()" class="btn btn-sm btn-dim">🧹 Temizle</button>
-                        <button onclick="runMission()" class="btn btn-sm btn-purple">▶ ÇALIŞTIR</button>
+                    <!-- Blok programlama -->
+                    <div class="panel-section">
+                        <h3>🧩 Blok Programlama</h3>
+                        <div class="block-palette">
+                            <button class="block-btn" style="background:#6e7681" onclick="addBlock('MOTOR_AC')">⚙️ Motor Aç</button>
+                            <button class="block-btn" style="background:#238636" onclick="addBlock('HAVALAN')">🚀 Havalan</button>
+                            <button class="block-btn" style="background:#1f6feb" onclick="addBlock('ROTA_GIT')">📍 Git</button>
+                            <button class="block-btn" style="background:#8b5cf6" onclick="addBlock('FOTO_CEK')">📸 Foto</button>
+                            <button class="block-btn" style="background:#d29922" onclick="addBlock('BEKLE')">⏳ Bekle</button>
+                            <button class="block-btn" style="background:#f0883e" onclick="addBlock('KARGO_BIRAK')">📦 Kargo</button>
+                            <button class="block-btn" style="background:#f85149" onclick="addBlock('IN_YAP')">🔽 İniş</button>
+                        </div>
+                        <div id="block-program" class="block-program"></div>
+                        <div class="btn-row">
+                            <button onclick="clearBlocks()" class="btn btn-sm btn-dim">🧹 Temizle</button>
+                            <button onclick="runMission()" class="btn btn-sm btn-purple" id="btn-run">▶ ÇALIŞTIR</button>
+                        </div>
                     </div>
-                </div>
+                    <div class="panel-section">
+                        <h3>💻 Konsol</h3>
+                        <div id="console-log" class="console-box"></div>
+                    </div>
+                </aside>
+                <main class="canvas-area">
+                    <canvas id="drone-canvas"></canvas>
+                    <div id="telemetry" class="telemetry-overlay">
+                        <div>Mod: <span id="tel-mode">Yerde</span></div>
+                        <div>X: <span id="tel-x">0.0</span>m | Y: <span id="tel-y">0.0</span>m</div>
+                        <div>Z: <span id="tel-z">0.0</span>m</div>
+                        <div>🔋 <span id="tel-bat">100</span>%</div>
+                    </div>
+                </main>
+                <aside class="panel panel-right">
+                    <div class="panel-section">
+                        <h3>📊 Sonuç</h3>
+                        <div id="score-display" class="score-card"><div class="score-big">—</div><div class="dim-text">Görevi tamamlayın</div></div>
+                    </div>
+                    <div class="panel-section">
+                        <h3>💬 Öğretmen Mesajları</h3>
+                        <div id="notifications" class="notifications-list"><p class="dim-text">Henüz mesaj yok</p></div>
+                    </div>
+                    <div class="panel-section">
+                        <h3>📋 Atanan Görevler</h3>
+                        <div id="assignments-list" class="assignments-list"><p class="dim-text">Henüz görev yok</p></div>
+                    </div>
+                </aside>
+            </div>
+        </div>
 
-                <!-- Seviye seçimi -->
-                <div class="panel-section">
-                    <h3>🎮 Zorluk Seviyesi</h3>
-                    <select id="difficulty-level" onchange="applyLevel()">
-                        <option value="1">🟢 1 - Başlangıç</option>
-                        <option value="2">🟡 2 - Kolay</option>
-                        <option value="3">🟠 3 - Orta</option>
-                        <option value="4">🔴 4 - Zor</option>
-                        <option value="5">💀 5 - Uzman</option>
-                    </select>
-                </div>
+        <!-- TAB: Rozetler -->
+        <div id="tab-badges" class="tab-content">
+            <div class="badges-page">
+                <h2>🏅 Rozet Koleksiyonum</h2>
+                <div id="badges-grid" class="badges-grid-big"></div>
+            </div>
+        </div>
 
-                <!-- Atanan görevler -->
-                <div class="panel-section">
-                    <h3>📋 Atanan Görevler</h3>
-                    <div id="assignments-list" class="assignments-list">
-                        <p class="dim-text">Henüz görev atanmadı</p>
+        <!-- TAB: Kendi Drone'unu Tasarla -->
+        <div id="tab-design" class="tab-content">
+            <div class="design-page">
+                <div id="design-locked" class="design-locked">
+                    <div class="lock-icon">🔒</div>
+                    <h2>Kendi Drone'unu Tasarla</h2>
+                    <p>Tüm seviyeleri tamamlayınca bu bölüm açılır!</p>
+                    <div class="progress-text" id="design-progress">İlerleme: 0/15 görev</div>
+                </div>
+                <div id="design-unlocked" class="design-unlocked hidden">
+                    <h2>🔧 Drone Mühendisi</h2>
+                    <p class="subtitle">Kendi drone'unu tasarla ve serbest uçuş yap!</p>
+                    <div class="design-grid">
+                        <div class="design-card">
+                            <h3>🛩️ Gövde Tipi</h3>
+                            <div id="frame-options" class="design-options"></div>
+                        </div>
+                        <div class="design-card">
+                            <h3>🔋 Batarya</h3>
+                            <div id="battery-options" class="design-options"></div>
+                        </div>
+                        <div class="design-card">
+                            <h3>📷 Kamera</h3>
+                            <div id="camera-options" class="design-options"></div>
+                        </div>
+                        <div class="design-card">
+                            <h3>⚡ Motor</h3>
+                            <div id="motor-options" class="design-options"></div>
+                        </div>
                     </div>
+                    <div class="design-stats" id="design-stats"></div>
+                    <button onclick="launchCustomDrone()" class="btn btn-primary btn-big">🚀 Drone'umu Uçur!</button>
                 </div>
-            </aside>
-
-            <!-- Orta: Simülasyon Canvas -->
-            <main class="canvas-area">
-                <canvas id="drone-canvas"></canvas>
-                <!-- Telemetri overlay -->
-                <div id="telemetry" class="telemetry-overlay">
-                    <div>Mod: <span id="tel-mode">Yerde</span></div>
-                    <div>X: <span id="tel-x">0.0</span>m</div>
-                    <div>Y: <span id="tel-y">0.0</span>m</div>
-                    <div>Z: <span id="tel-z">0.0</span>m</div>
-                    <div>🔋 <span id="tel-bat">100</span>%</div>
-                    <div>Motor: <span id="tel-motor">KAPALI</span></div>
-                </div>
-            </main>
-
-            <!-- Sağ: Konsol + bilgi -->
-            <aside class="panel panel-right">
-                <div class="panel-section">
-                    <h3>📊 Skor</h3>
-                    <div id="score-display" class="score-card">
-                        <div class="score-big">—</div>
-                        <div class="dim-text">Görev tamamlayın</div>
-                    </div>
-                </div>
-                <div class="panel-section">
-                    <h3>🏅 Rozetlerim</h3>
-                    <div id="badges-grid" class="badges-grid"></div>
-                </div>
-                <div class="panel-section">
-                    <h3>💬 Öğretmen Mesajları</h3>
-                    <div id="notifications" class="notifications-list">
-                        <p class="dim-text">Henüz mesaj yok</p>
-                    </div>
-                </div>
-                <div class="panel-section">
-                    <h3>💻 Konsol</h3>
-                    <div id="console-log" class="console-box"></div>
-                </div>
-            </aside>
+            </div>
         </div>
     </div>
 
     <!-- ═══ ÖĞRETMEN PANELİ ═══ -->
     <div id="teacher-screen" class="screen">
         <nav class="topbar topbar-admin">
-            <div class="topbar-left">
-                <span class="logo">👨‍🏫 Öğretmen Paneli</span>
-            </div>
+            <div class="topbar-left"><span class="logo">👨‍🏫 Öğretmen Paneli</span></div>
             <div class="topbar-right">
                 <span id="teacher-name" class="user-name"></span>
+                <button onclick="refreshTeacherData()" class="btn btn-sm btn-primary">🔄 Yenile</button>
                 <button onclick="logout()" class="btn btn-sm btn-dim">Çıkış</button>
             </div>
         </nav>
-
         <div class="admin-layout">
-            <!-- İstatistik kartları -->
             <div class="stats-row">
-                <div class="stat-card">
-                    <div class="stat-number" id="stat-students">0</div>
-                    <div class="stat-label">Öğrenci</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="stat-missions">0</div>
-                    <div class="stat-label">Toplam Görev</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="stat-avg">—</div>
-                    <div class="stat-label">Ort. Skor</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="stat-active">0</div>
-                    <div class="stat-label">Aktif Bugün</div>
-                </div>
+                <div class="stat-card"><div class="stat-number" id="stat-students">0</div><div class="stat-label">Öğrenci</div></div>
+                <div class="stat-card"><div class="stat-number" id="stat-missions">0</div><div class="stat-label">Toplam Görev</div></div>
+                <div class="stat-card"><div class="stat-number" id="stat-avg">—</div><div class="stat-label">Ort. Skor</div></div>
+                <div class="stat-card"><div class="stat-number" id="stat-active">0</div><div class="stat-label">Aktif Bugün</div></div>
             </div>
-
-            <!-- Görev atama -->
             <div class="admin-section">
                 <h2>📝 Görev Ata</h2>
                 <div class="assign-form">
@@ -221,29 +200,37 @@
                         <option value="arama">🔍 Arama Kurtarma</option>
                         <option value="kargo">📦 Kargo Teslimat</option>
                         <option value="foto">📸 Fotoğraf Turu</option>
-                        <option value="yaris">🏁 Yarış Parkuru</option>
                         <option value="ozel">✏️ Özel Görev</option>
                     </select>
-                    <input type="text" id="assign-desc" placeholder="Açıklama (opsiyonel)">
+                    <input type="text" id="assign-desc" placeholder="Açıklama...">
                     <button onclick="assignTask()" class="btn btn-primary">Gönder</button>
                 </div>
             </div>
-
-            <!-- Geri bildirim -->
             <div class="admin-section">
                 <h2>💬 Geri Bildirim</h2>
                 <div class="feedback-form">
                     <select id="feedback-student"><option value="">Öğrenci seçin...</option></select>
-                    <textarea id="feedback-text" placeholder="Mesajınız..." rows="3"></textarea>
+                    <textarea id="feedback-text" placeholder="Mesajınız..." rows="2"></textarea>
                     <button onclick="sendFeedback()" class="btn btn-green">Gönder 💬</button>
                 </div>
             </div>
-
-            <!-- Öğrenci listesi -->
             <div class="admin-section">
                 <h2>👥 Öğrenciler</h2>
                 <div id="students-grid" class="students-grid"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- Brifing Popup -->
+    <div id="briefing-popup" class="popup hidden">
+        <div class="popup-content popup-wide">
+            <div id="bp-level-icon" class="bp-icon"></div>
+            <h2 id="bp-title"></h2>
+            <p id="bp-story" class="bp-story"></p>
+            <div id="bp-objectives" class="bp-objectives"></div>
+            <div id="bp-hint" class="bp-hint"></div>
+            <button onclick="startMissionFromBriefing()" class="btn btn-primary btn-big">🚀 Göreve Başla!</button>
+            <button onclick="closeBriefing()" class="btn btn-sm btn-dim" style="margin-top:8px">← Geri</button>
         </div>
     </div>
 
@@ -256,7 +243,22 @@
         </div>
     </div>
 
+    <!-- Seviye Tamamlama Popup -->
+    <div id="level-popup" class="popup hidden">
+        <div class="popup-content">
+            <div id="lp-stars" class="lp-stars"></div>
+            <h2 id="lp-title"></h2>
+            <div id="lp-score" class="lp-score"></div>
+            <div id="lp-fact" class="lp-fact"></div>
+            <button onclick="closeLevelPopup()" class="btn btn-primary">Devam ▶</button>
+        </div>
+    </div>
+
+    <!-- Confetti canvas -->
+    <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
+
     <script src="js/firebase-config.js"></script>
+    <script src="js/missions.js"></script>
     <script src="js/drone-sim.js"></script>
     <script src="js/drone-canvas.js"></script>
     <script src="js/app.js"></script>
