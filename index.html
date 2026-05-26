@@ -18,6 +18,11 @@
                 <div class="drone-icon">🚁</div>
                 <h1>Drone Eğitim Platformu</h1>
                 <p class="subtitle">Gökyüzüne hazır mısın?</p>
+                <div class="credit-box">
+                    Bu eğitim yazılımı <strong>Öğretmen Muzaffer Çınar</strong> tarafından<br>
+                    havacılığı çocuklara sevdirme ve ilham olma adına tasarlanmıştır.<br>
+                    <span class="credit-free">🎁 Bu seviye ücretsiz sunulmaktadır.</span>
+                </div>
             </div>
             <div class="auth-tabs">
                 <button class="tab-btn active" onclick="showTab('login')">Giriş Yap</button>
@@ -43,12 +48,13 @@
     <div id="student-screen" class="screen">
         <nav class="topbar">
             <div class="topbar-left">
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
                 <span class="logo">🚁 Drone Eğitim</span>
                 <span id="student-name" class="user-name"></span>
             </div>
-            <div class="topbar-center">
-                <button class="nav-btn active" onclick="showStudentTab('map')" id="nav-map">🗺️ Görev Haritası</button>
-                <button class="nav-btn" onclick="showStudentTab('sim')" id="nav-sim">🎮 Simülasyon</button>
+            <div class="topbar-center" id="topbar-nav">
+                <button class="nav-btn active" onclick="showStudentTab('map')" id="nav-map">🗺️ Görevler</button>
+                <button class="nav-btn" onclick="showStudentTab('sim')" id="nav-sim">🎮 Uçuş</button>
                 <button class="nav-btn" onclick="showStudentTab('badges')" id="nav-badges">🏅 Rozetler</button>
                 <button class="nav-btn" onclick="showStudentTab('design')" id="nav-design">🔧 Tasarla</button>
             </div>
@@ -71,6 +77,18 @@
 
         <!-- TAB: Simülasyon -->
         <div id="tab-sim" class="tab-content">
+            <!-- Mobil blok çubuğu -->
+            <div class="mobile-blocks-bar">
+                <button class="block-btn-m" style="background:#6e7681" onclick="addBlock('MOTOR_AC')">⚙️</button>
+                <button class="block-btn-m" style="background:#238636" onclick="addBlock('HAVALAN')">🚀</button>
+                <button class="block-btn-m" style="background:#1f6feb" onclick="addBlock('ROTA_GIT')">📍</button>
+                <button class="block-btn-m" style="background:#8b5cf6" onclick="addBlock('FOTO_CEK')">📸</button>
+                <button class="block-btn-m" style="background:#d29922" onclick="addBlock('BEKLE')">⏳</button>
+                <button class="block-btn-m" style="background:#f0883e" onclick="addBlock('KARGO_BIRAK')">📦</button>
+                <button class="block-btn-m" style="background:#f85149" onclick="addBlock('IN_YAP')">🔽</button>
+                <button class="block-btn-m" style="background:#238636" onclick="runMission()">▶</button>
+                <button class="block-btn-m" style="background:#21262d" onclick="clearBlocks()">🧹</button>
+            </div>
             <div class="sim-layout">
                 <aside class="panel panel-left">
                     <!-- Görev brifing -->

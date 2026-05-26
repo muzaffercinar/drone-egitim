@@ -5,7 +5,8 @@ let currentUser=null,userProfile=null,drone=null,canvas=null,blocks=[],currentLe
 // ═══ EKRAN ═══
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
 function showTab(t){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('login-form').classList.toggle('hidden',t!=='login');document.getElementById('register-form').classList.toggle('hidden',t==='login');document.querySelectorAll('.tab-btn')[t==='login'?0:1].classList.add('active')}
-function showStudentTab(t){document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('nav-'+t)?.classList.add('active');if(t==='sim'&&canvas)setTimeout(()=>canvas._resize(),100);if(t==='badges')updateBadgesPage();if(t==='design')updateDesignPage()}
+function showStudentTab(t){document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('nav-'+t)?.classList.add('active');if(t==='sim'&&canvas)setTimeout(()=>canvas._resize(),100);if(t==='badges')updateBadgesPage();if(t==='design')updateDesignPage();document.getElementById('topbar-nav')?.classList.remove('show')}
+function toggleMobileMenu(){document.getElementById('topbar-nav')?.classList.toggle('show')}
 function showError(m){const e=document.getElementById('auth-error');e.textContent=m;e.classList.remove('hidden');setTimeout(()=>e.classList.add('hidden'),4000)}
 
 // ═══ AUTH ═══
