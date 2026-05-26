@@ -83,8 +83,17 @@ auth.onAuthStateChanged(async (user) => {
         currentUser = user;
         userProfile = await DB.getProfile(user.uid);
         if (!userProfile) {
-            showError('Profil bulunamadı');
-            auth.signOut(); return;
+            // Profil yoksa otomatik oluştur
+            userProfile = {
+                name: user.displayName || user.email.split('@')[0],
+                email: user.email,
+                role: 'student',
+                level: 1, totalMissions: 0, bestGrade: 'F',
+                totalDistance: 0, totalPhotos: 0,
+                createdAt: Date.now(),
+                lastActive: Date.now()
+            };
+            await DB.saveProfile(user.uid, userProfile);
         }
         if (userProfile.role === 'teacher') {
             initTeacher();
