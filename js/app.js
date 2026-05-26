@@ -1,5 +1,8 @@
 /* ═══ ANA UYGULAMA — Auth, Öğrenci, Öğretmen Paneli ═══ */
 
+// ⚠️ ÖĞRETMEN E-POSTASI — sadece bu e-posta öğretmen paneline erişir
+const TEACHER_EMAIL = 'kavacikuzum@gmail.com';
+
 let currentUser = null;
 let userProfile = null;
 let drone = null;
@@ -40,7 +43,7 @@ async function handleRegister(e) {
     const name = document.getElementById('reg-name').value;
     const email = document.getElementById('reg-email').value;
     const password = document.getElementById('reg-password').value;
-    const role = document.getElementById('reg-role').value;
+    const role = (email.toLowerCase() === TEACHER_EMAIL.toLowerCase()) ? 'teacher' : 'student';
     document.getElementById('auth-loading').classList.remove('hidden');
 
     try {
