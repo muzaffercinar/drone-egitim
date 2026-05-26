@@ -1,7 +1,7 @@
 /* ═══ ANA UYGULAMA — Auth, Öğrenci, Öğretmen Paneli ═══ */
 
 // ⚠️ ÖĞRETMEN E-POSTASI — sadece bu e-posta öğretmen paneline erişir
-const TEACHER_EMAIL = 'kavacikuzum@gmail.com';
+const TEACHER_EMAIL = 'kavacikuzun@gmail.com';
 
 let currentUser = null;
 let userProfile = null;
@@ -85,18 +85,23 @@ auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;
         userProfile = await DB.getProfile(user.uid);
+        const isTeacher = user.email.toLowerCase() === TEACHER_EMAIL.toLowerCase();
         if (!userProfile) {
-            // Profil yoksa otomatik oluştur
             userProfile = {
                 name: user.displayName || user.email.split('@')[0],
                 email: user.email,
-                role: 'student',
+                role: isTeacher ? 'teacher' : 'student',
                 level: 1, totalMissions: 0, bestGrade: 'F',
                 totalDistance: 0, totalPhotos: 0,
                 createdAt: Date.now(),
                 lastActive: Date.now()
             };
             await DB.saveProfile(user.uid, userProfile);
+        }
+        // E-posta eşleşirse her zaman öğretmen yap
+        if (isTeacher && userProfile.role !== 'teacher') {
+            userProfile.role = 'teacher';
+            await DB.saveProfile(user.uid, { role: 'teacher' });
         }
         if (userProfile.role === 'teacher') {
             initTeacher();
