@@ -9,12 +9,20 @@ function showStudentTab(t){document.querySelectorAll('.tab-content').forEach(c=>
 function toggleMobileMenu(){document.getElementById('topbar-nav')?.classList.toggle('show')}
 function showError(m){const e=document.getElementById('auth-error');e.textContent=m;e.classList.remove('hidden');setTimeout(()=>e.classList.add('hidden'),4000)}
 
+// ═══ AUTH HELPERS ═══
+function usernameToEmail(u) {
+    const clean = u.trim().toLowerCase();
+    if (clean === 'kavacikuzun') return TEACHER_EMAIL;
+    if (clean.includes('@')) return clean;
+    return `${clean.replace(/[^a-z0-9_.-]/g, '')}@droneedu.local`;
+}
+
 // ═══ AUTH ═══
-async function handleRegister(e){e.preventDefault();const n=document.getElementById('reg-name').value,em=document.getElementById('reg-email').value,pw=document.getElementById('reg-password').value,role=em.toLowerCase()===TEACHER_EMAIL?'teacher':'student';document.getElementById('auth-loading').classList.remove('hidden');try{const c=await auth.createUserWithEmailAndPassword(em,pw);await DB.saveProfile(c.user.uid,{name:n,email:em,role,level:1,totalMissions:0,bestGrade:'F',totalDistance:0,totalPhotos:0,createdAt:Date.now(),lastActive:Date.now()})}catch(er){showError(er.message)}document.getElementById('auth-loading').classList.add('hidden')}
-async function handleLogin(e){e.preventDefault();const em=document.getElementById('login-email').value,pw=document.getElementById('login-password').value;document.getElementById('auth-loading').classList.remove('hidden');try{await auth.signInWithEmailAndPassword(em,pw)}catch(er){showError(er.message)}document.getElementById('auth-loading').classList.add('hidden')}
+async function handleRegister(e){e.preventDefault();const username=document.getElementById('reg-username').value.trim(),pw=document.getElementById('reg-password').value,em=usernameToEmail(username),role=em.toLowerCase()===TEACHER_EMAIL?'teacher':'student';document.getElementById('auth-loading').classList.remove('hidden');try{const c=await auth.createUserWithEmailAndPassword(em,pw);await DB.saveProfile(c.user.uid,{name:username,email:em,role,level:1,totalMissions:0,bestGrade:'F',totalDistance:0,totalPhotos:0,createdAt:Date.now(),lastActive:Date.now()})}catch(er){showError(er.message)}document.getElementById('auth-loading').classList.add('hidden')}
+async function handleLogin(e){e.preventDefault();const username=document.getElementById('login-username').value.trim(),pw=document.getElementById('login-password').value,em=usernameToEmail(username);document.getElementById('auth-loading').classList.remove('hidden');try{await auth.signInWithEmailAndPassword(em,pw)}catch(er){showError(er.message)}document.getElementById('auth-loading').classList.add('hidden')}
 function logout(){auth.signOut()}
 
-auth.onAuthStateChanged(async u=>{if(u){currentUser=u;userProfile=await DB.getProfile(u.uid);const isT=u.email.toLowerCase()===TEACHER_EMAIL;if(!userProfile){userProfile={name:u.displayName||u.email.split('@')[0],email:u.email,role:isT?'teacher':'student',level:1,totalMissions:0,bestGrade:'F',totalDistance:0,totalPhotos:0,createdAt:Date.now(),lastActive:Date.now()};await DB.saveProfile(u.uid,userProfile)}if(isT&&userProfile.role!=='teacher'){userProfile.role='teacher';await DB.saveProfile(u.uid,{role:'teacher'})}userProfile.role==='teacher'?initTeacher():initStudent()}else{currentUser=null;userProfile=null;showScreen('auth-screen')}});
+auth.onAuthStateChanged(async u=>{if(u){currentUser=u;userProfile=await DB.getProfile(u.uid);const isT=u.email.toLowerCase()===TEACHER_EMAIL;if(!userProfile){const displayName=u.email.split('@')[0];userProfile={name:displayName,email:u.email,role:isT?'teacher':'student',level:1,totalMissions:0,bestGrade:'F',totalDistance:0,totalPhotos:0,createdAt:Date.now(),lastActive:Date.now()};await DB.saveProfile(u.uid,userProfile)}if(isT&&userProfile.role!=='teacher'){userProfile.role='teacher';await DB.saveProfile(u.uid,{role:'teacher'})}userProfile.role==='teacher'?initTeacher():initStudent()}else{currentUser=null;userProfile=null;showScreen('auth-screen')}});
 
 // ═══ ÖĞRENCİ ═══
 async function initStudent(){showScreen('student-screen');document.getElementById('student-name').textContent='👤 '+userProfile.name;document.getElementById('student-level').textContent='Seviye '+(userProfile.level||1);

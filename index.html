@@ -29,13 +29,12 @@
                 <button class="tab-btn" onclick="showTab('register')">Kayıt Ol</button>
             </div>
             <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
-                <div class="input-group"><label>📧 E-posta</label><input type="email" id="login-email" required placeholder="ornek@okul.com"></div>
+                <div class="input-group"><label>👤 Kullanıcı Adı</label><input type="text" id="login-username" required placeholder="kullaniciadi"></div>
                 <div class="input-group"><label>🔒 Şifre</label><input type="password" id="login-password" required placeholder="••••••••"></div>
                 <button type="submit" class="btn btn-primary">Giriş Yap ▶</button>
             </form>
             <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
-                <div class="input-group"><label>👤 Ad Soyad</label><input type="text" id="reg-name" required placeholder="Ahmet Yılmaz"></div>
-                <div class="input-group"><label>📧 E-posta</label><input type="email" id="reg-email" required placeholder="ornek@okul.com"></div>
+                <div class="input-group"><label>👤 Kullanıcı Adı</label><input type="text" id="reg-username" required placeholder="kullaniciadi"></div>
                 <div class="input-group"><label>🔒 Şifre (min 6)</label><input type="password" id="reg-password" required minlength="6" placeholder="••••••••"></div>
                 <button type="submit" class="btn btn-green">Kayıt Ol ✓</button>
             </form>
