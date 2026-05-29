@@ -20,13 +20,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overf
     justify-content: center;
     align-items: center;
     background: #060a12;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100vh;
+    height: 100vh;
+    width: 100vw;
 }
 
 /* ── Background Layer ── */
 .auth-bg-layer {
-    position: absolute;
-    inset: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
     z-index: 1;
     pointer-events: none;
     background:
@@ -184,7 +191,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overf
     border-top-color: rgba(148, 180, 255, 0.2);
     border-radius: 24px;
     padding: 40px 36px 32px;
-    width: 440px;
+    width: 460px;
+    max-width: 95vw;
+    margin: 20px;
     box-shadow:
         0 30px 80px rgba(0, 0, 0, 0.7),
         0 0 0 1px rgba(148, 180, 255, 0.05),
@@ -244,19 +253,19 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overf
     padding: 0 12px;
 }
 .emblem-ring {
-    width: 72px; height: 72px;
+    width: 90px; height: 90px;
     border-radius: 50%;
     background: conic-gradient(
         from 0deg,
-        rgba(210, 175, 55, 0.5),
-        rgba(210, 175, 55, 0.15),
-        rgba(210, 175, 55, 0.5),
-        rgba(210, 175, 55, 0.15),
-        rgba(210, 175, 55, 0.5)
+        rgba(210, 175, 55, 0.6),
+        rgba(210, 175, 55, 0.1),
+        rgba(210, 175, 55, 0.6),
+        rgba(210, 175, 55, 0.1),
+        rgba(210, 175, 55, 0.6)
     );
     padding: 3px;
     animation: emblemRotate 12s linear infinite;
-    box-shadow: 0 0 20px rgba(210, 175, 55, 0.15);
+    box-shadow: 0 0 30px rgba(210, 175, 55, 0.2), 0 0 60px rgba(210, 175, 55, 0.05);
 }
 @keyframes emblemRotate { to { transform: rotate(360deg); } }
 .emblem-inner {
@@ -266,17 +275,40 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overf
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
+    overflow: hidden;
 }
 .emblem-icon {
-    font-size: 32px;
-    animation: float 3.5s ease-in-out infinite;
-    filter: drop-shadow(0 4px 12px rgba(210, 175, 55, 0.25));
-    display: inline-block;
+    width: 54px; height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: droneHover 3.5s ease-in-out infinite;
 }
-@keyframes float {
+.drone-svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 2px 8px rgba(210, 175, 55, 0.3));
+}
+/* Propeller spin */
+.prop { transform-origin: center; }
+.prop-1 { animation: propSpin 0.6s linear infinite; transform-origin: 14px 14px; }
+.prop-2 { animation: propSpin 0.5s linear infinite; transform-origin: 50px 14px; }
+.prop-3 { animation: propSpin 0.55s linear infinite; transform-origin: 14px 50px; }
+.prop-4 { animation: propSpin 0.6s linear infinite; transform-origin: 50px 50px; }
+@keyframes propSpin { to { transform: rotate(360deg); } }
+/* LED blink */
+.led { animation: ledBlink 1.5s ease-in-out infinite; }
+.led-2 { animation-delay: 0.3s; }
+.led-3 { animation-delay: 0.6s; }
+.led-4 { animation-delay: 0.9s; }
+@keyframes ledBlink {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
+@keyframes droneHover {
     0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-6px) rotate(3deg); }
+    50% { transform: translateY(-4px) rotate(2deg); }
 }
 
 /* ── Header ── */
