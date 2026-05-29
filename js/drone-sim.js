@@ -18,7 +18,10 @@ class DroneSim {
         this.x = 0; this.y = 0; this.z = 0;
         this.battery = 100; this.motorOn = false;
         this.mode = 'Yerde'; this.cancelled = false;
-        this.stats = { distance: 0, photos: 0, cargo: 0, maxAlt: 0 };
+        this.stats = { distance: 0, photos: 0, cargo: 0, maxAlt: 0, collectedLetters: [] };
+        if (this.letters) {
+            this.letters.forEach(l => l.collected = false);
+        }
         this._update();
     }
 
@@ -83,6 +86,22 @@ class DroneSim {
             if (this._checkNFZ(nx, ny) || this._checkObstacle(nx, ny)) return false;
             this.x = nx; this.y = ny; this.z += dz;
             this.stats.maxAlt = Math.max(this.stats.maxAlt, this.z);
+            
+            // Check letters
+            if (this.letters && this.z <= 5 && this.targetName) { // Need to be low to collect
+                const expectedChar = this.targetName[this.stats.collectedLetters.length];
+                if (expectedChar) {
+                    for (const l of this.letters) {
+                        if (!l.collected && l.char === expectedChar && Math.sqrt((this.x - l.x)**2 + (this.y - l.y)**2) < 4) {
+                            l.collected = true;
+                            this.stats.collectedLetters.push(l.char);
+                            this._log(`🔤 Harf Toplandı: ${l.char}`);
+                            break;
+                        }
+                    }
+                }
+            }
+
             this._update();
             await this._sleep(120);
         }
@@ -252,7 +271,8 @@ class DroneSim {
             completed: `${completed}/${total}`,
             photos: this.stats.photos,
             cargo: this.stats.cargo,
-            maxAlt: Math.round(this.stats.maxAlt)
+            maxAlt: Math.round(this.stats.maxAlt),
+            collectedName: this.stats.collectedLetters ? this.stats.collectedLetters.join('') : ''
         };
     }
 }
@@ -284,5 +304,6 @@ const BADGES = {
     maraton:   { icon:'🏃', name:'Maratoncı',      desc:'500m toplam mesafe' },
     puan_a:    { icon:'🏆', name:'A Notu',         desc:'Bir görevde A notu al' },
     ruzgar:    { icon:'🌪️', name:'Fırtına Avcısı', desc:'7+ m/s rüzgarda görev tamamla' },
+    harf_oyunu:{ icon:'🔤', name:'Harf Avcısı',    desc:'Harf tarlasında adını başarıyla yazdın' },
     seviye5:   { icon:'💀', name:'Uzman Pilot',    desc:'Seviye 5 tamamla' }
 };

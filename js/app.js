@@ -69,7 +69,23 @@ function startMissionFromBriefing(){closeBriefing();showStudentTab('sim');if(!ac
 document.getElementById('mission-title').textContent=m.icon+' '+m.name;document.getElementById('mission-briefing').textContent=m.briefing;
 document.getElementById('mission-objectives').innerHTML=m.objectives.map(o=>`<div class="obj-item"><span class="obj-check">⬜</span> ${o.label}</div>`).join('');
 document.getElementById('mission-hint').classList.remove('hidden');document.getElementById('hint-text').textContent=m.hint;
-const env=m.environment;drone.reset();canvas.reset();drone.wind={active:env.wind,dir:Math.floor(Math.random()*360),speed:env.windSpeed};drone.obstacles=env.obstacles||[];drone.nfzZones=env.nfz||[];drone.battery=env.battery||100;canvas.setEnvironment(env.obstacles,env.nfz);canvas.draw();
+const env=m.environment;drone.reset();canvas.reset();drone.wind={active:env.wind,dir:Math.floor(Math.random()*360),speed:env.windSpeed};drone.obstacles=env.obstacles||[];drone.nfzZones=env.nfz||[];drone.battery=env.battery||100;
+if (env.isLetterField) {
+    const letters = [];
+    const nameStr = (userProfile.name || 'PILOT').toUpperCase().replace(/[^A-ZÇĞİÖŞÜ]/g, '').substring(0, 8);
+    drone.targetName = nameStr;
+    const coords = [[20,10],[-15,25],[30,-10],[-25,-15],[10,35],[-10,-20],[35,15],[-20,10]];
+    for (let i = 0; i < nameStr.length; i++) {
+        letters.push({ x: coords[i%coords.length][0], y: coords[i%coords.length][1], char: nameStr[i], collected: false });
+    }
+    letters.push({ x: 0, y: 20, char: 'X', collected: false }, { x: 25, y: 25, char: 'Q', collected: false });
+    env.letters = letters;
+} else {
+    drone.targetName = null;
+    env.letters = [];
+}
+drone.letters = env.letters;
+canvas.setEnvironment(env.obstacles,env.nfz,env.letters);canvas.draw();
 clearBlocks();logConsole('═'.repeat(30));logConsole('📋 Görev: '+m.name);logConsole(m.briefing);logConsole('═'.repeat(30))}
 
 // ═══ BLOK PROGRAMLAMA ═══
@@ -102,7 +118,7 @@ function closeLevelPopup(){document.getElementById('level-popup').classList.add(
 
 // ═══ ROZETLER ═══
 async function checkBadges(score){if(!currentUser)return;const ms=Object.values(missionProgress);const tM=ms.length,tP=ms.reduce((s,m)=>s+(m.photos||0),0),tC=ms.reduce((s,m)=>s+(m.cargo||0),0),tD=ms.reduce((s,m)=>s+(m.distance||0),0);
-const checks={ilk_ucus:tM>=1,pilot:tM>=5,kaptan:tM>=15,fotograf:tP>=10,kargoci:tC>=5,yuksek:score.maxAlt>=50,maraton:tD>=500,puan_a:ms.some(m=>m.grade==='A'),ruzgar:score.level>=4&&score.points>0,seviye5:ms.some(m=>m.level>=5&&m.score>0)};
+const checks={ilk_ucus:tM>=1,pilot:tM>=5,kaptan:tM>=15,fotograf:tP>=10,kargoci:tC>=5,yuksek:score.maxAlt>=50,maraton:tD>=500,puan_a:ms.some(m=>m.grade==='A'),ruzgar:score.level>=4&&score.points>0,seviye5:ms.some(m=>m.level>=5&&m.score>0),harf_oyunu:score.targetName&&score.collectedName===score.targetName};
 const nb=[];for(const[id,ok]of Object.entries(checks)){if(ok&&!earnedBadges.includes(id)){earnedBadges.push(id);await DB.saveBadge(currentUser.uid,id);nb.push(id)}}
 if(nb.length>0){showBadgePopup(nb);const nl=Math.min(5,Math.floor(earnedBadges.length/2)+1);if(nl>(userProfile.level||1)){await DB.saveProfile(currentUser.uid,{level:nl});userProfile.level=nl;document.getElementById('student-level').textContent='Seviye '+nl}}}
 function updateBadgesPage(){const g=document.getElementById('badges-grid');g.innerHTML='';for(const[id,b]of Object.entries(BADGES)){const e=earnedBadges.includes(id);g.innerHTML+=`<div class="badge-cell-big ${e?'earned':'locked'}"><span class="bc-icon">${e?b.icon:'🔒'}</span><div class="bc-name">${b.name}</div><div class="bc-desc">${b.desc}</div></div>`}}

@@ -31,9 +31,10 @@ class DroneCanvas {
         if (data.wind) this.wind = data.wind;
     }
 
-    setEnvironment(obstacles, nfzZones) {
+    setEnvironment(obstacles, nfzZones, letters = []) {
         this.obstacles = obstacles || [];
         this.nfzZones = nfzZones || [];
+        this.letters = letters;
     }
 
     reset() {
@@ -109,6 +110,29 @@ class DroneCanvas {
                 ctx.strokeStyle = '#2ea043'; ctx.lineWidth = 2; ctx.stroke();
                 ctx.font = `${Math.max(10, r)}px Consolas`;
                 ctx.textAlign = 'center'; ctx.fillText('🌳', ox, oy+r*0.3);
+            }
+        }
+
+        // Harfler
+        if (this.letters && this.letters.length > 0) {
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (const l of this.letters) {
+                const [lx, ly] = this._w2s(l.x, l.y);
+                if (l.collected) {
+                    ctx.font = 'bold 12px Consolas';
+                    ctx.fillStyle = '#3fb950';
+                    ctx.fillText('✔️', lx, ly);
+                } else {
+                    ctx.font = 'bold 16px Inter, sans-serif';
+                    ctx.fillStyle = '#f0d78c';
+                    ctx.fillText(l.char, lx, ly);
+                }
+                ctx.strokeStyle = l.collected ? '#2ea043' : '#d4a843';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(lx, ly, 12, 0, Math.PI*2);
+                ctx.stroke();
             }
         }
 

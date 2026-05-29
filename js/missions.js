@@ -94,6 +94,18 @@ const CURRICULUM = {
                         { type: 'batteryLeft', value: 40, label: '%40+ batarya ile bitir' },
                         { type: 'returnHome', label: 'Eve dön' }
                     ]
+                },
+                {
+                    id: 'm2_4', name: 'Harf Tarlası',
+                    icon: '🔤', minScore: 70,
+                    briefing: 'Ekranda isminin harfleri var! Drone ile doğru sırayla bu harflerin üzerine uçarak adını topla.',
+                    hint: 'Harflerin koordinatlarını haritadan bul ve Rota Git bloklarıyla sırayla onlara uç.',
+                    expectedBlocks: ['MOTOR_AC', 'HAVALAN', 'ROTA_GIT', 'IN_YAP'],
+                    environment: { wind: false, windSpeed: 0, obstacles: [], nfz: [], battery: 100, isLetterField: true },
+                    objectives: [
+                        { type: 'spellName', label: 'Adını harf harf topla' },
+                        { type: 'returnHome', label: 'Eve dön' }
+                    ]
                 }
             ]
         },
