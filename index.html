@@ -13,38 +13,128 @@
 <body>
     <!-- ═══ GİRİŞ ═══ -->
     <div id="auth-screen" class="screen active">
-        <div class="auth-bg-blobs">
-            <div class="auth-blob blob-1"></div>
-            <div class="auth-blob blob-2"></div>
-            <div class="auth-blob blob-3"></div>
+        <!-- Animated background layers -->
+        <div class="auth-bg-layer">
+            <!-- Stars / particles -->
+            <div class="auth-stars" id="auth-stars"></div>
+            <!-- Radar sweep -->
+            <div class="radar-container">
+                <div class="radar-ring ring-1"></div>
+                <div class="radar-ring ring-2"></div>
+                <div class="radar-ring ring-3"></div>
+                <div class="radar-sweep"></div>
+                <div class="radar-dot dot-1"></div>
+                <div class="radar-dot dot-2"></div>
+                <div class="radar-dot dot-3"></div>
+            </div>
+            <!-- Floating aircraft silhouettes -->
+            <div class="floating-aircraft ac-1">✈</div>
+            <div class="floating-aircraft ac-2">✈</div>
+            <div class="floating-aircraft ac-3">🛩️</div>
+            <!-- Runway lights -->
+            <div class="runway-lights">
+                <span class="rw-light"></span><span class="rw-light"></span><span class="rw-light"></span>
+                <span class="rw-light"></span><span class="rw-light"></span><span class="rw-light"></span>
+                <span class="rw-light"></span><span class="rw-light"></span><span class="rw-light"></span>
+                <span class="rw-light"></span><span class="rw-light"></span><span class="rw-light"></span>
+            </div>
         </div>
+
         <div class="auth-container">
+            <!-- Top decorative wings -->
+            <div class="auth-wings">
+                <div class="wing wing-left"></div>
+                <div class="auth-emblem">
+                    <div class="emblem-ring">
+                        <div class="emblem-inner">
+                            <span class="emblem-icon">🚁</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="wing wing-right"></div>
+            </div>
+
             <div class="auth-header">
-                <div class="drone-icon">🚁</div>
-                <h1>Drone Eğitim Platformu</h1>
-                <p class="subtitle">Gökyüzüne hazır mısın?</p>
+                <h1 class="club-title">HAVACILIK KLÜBÜ</h1>
+                <div class="title-divider">
+                    <span class="divider-star">✦</span>
+                    <span class="divider-line"></span>
+                    <span class="divider-diamond">◆</span>
+                    <span class="divider-line"></span>
+                    <span class="divider-star">✦</span>
+                </div>
+                <p class="subtitle">Drone Eğitim Platformu</p>
+                <p class="subtitle-tagline">— Gökyüzüne hazır mısın? —</p>
+
                 <div class="credit-box">
                     Bu eğitim yazılımı <strong>Öğretmen Muzaffer Çınar</strong> tarafından<br>
                     havacılığı çocuklara sevdirme ve ilham olma adına tasarlanmıştır.<br>
                     <span class="credit-free">🎁 Bu seviye ücretsiz sunulmaktadır.</span>
                 </div>
             </div>
+
             <div class="auth-tabs">
-                <button class="tab-btn active" onclick="showTab('login')">Giriş Yap</button>
-                <button class="tab-btn" onclick="showTab('register')">Kayıt Ol</button>
+                <button class="tab-btn active" onclick="showTab('login')">
+                    <span class="tab-icon">✈</span> Giriş Yap
+                </button>
+                <button class="tab-btn" onclick="showTab('register')">
+                    <span class="tab-icon">🛩️</span> Kayıt Ol
+                </button>
             </div>
+
             <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
-                <div class="input-group"><label>👤 Kullanıcı Adı</label><input type="text" id="login-username" required placeholder="kullaniciadi"></div>
-                <div class="input-group"><label>🔒 Şifre</label><input type="password" id="login-password" required placeholder="••••••••"></div>
-                <button type="submit" class="btn btn-primary">Giriş Yap ▶</button>
+                <div class="input-group">
+                    <label><span class="label-icon">👤</span> Pilot Adı</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="login-username" required placeholder="Çağrı işaretiniz...">
+                        <div class="input-glow"></div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label><span class="label-icon">🔒</span> Erişim Kodu</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="login-password" required placeholder="••••••••">
+                        <div class="input-glow"></div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary auth-submit-btn">
+                    <span class="btn-content">Uçuşa Geç</span>
+                    <span class="btn-arrow">▶</span>
+                    <div class="btn-shine"></div>
+                </button>
             </form>
             <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
-                <div class="input-group"><label>👤 Kullanıcı Adı</label><input type="text" id="reg-username" required placeholder="kullaniciadi"></div>
-                <div class="input-group"><label>🔒 Şifre (min 6)</label><input type="password" id="reg-password" required minlength="6" placeholder="••••••••"></div>
-                <button type="submit" class="btn btn-green">Kayıt Ol ✓</button>
+                <div class="input-group">
+                    <label><span class="label-icon">👤</span> Pilot Adı</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="reg-username" required placeholder="Çağrı işaretiniz...">
+                        <div class="input-glow"></div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label><span class="label-icon">🔒</span> Erişim Kodu (min 6)</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="reg-password" required minlength="6" placeholder="••••••••">
+                        <div class="input-glow"></div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-green auth-submit-btn">
+                    <span class="btn-content">Kadromuza Katıl</span>
+                    <span class="btn-arrow">✓</span>
+                    <div class="btn-shine"></div>
+                </button>
             </form>
             <div id="auth-error" class="error-msg hidden"></div>
-            <div id="auth-loading" class="loading hidden">⏳ Yükleniyor...</div>
+            <div id="auth-loading" class="loading hidden">
+                <div class="loading-spinner"></div>
+                <span>Uçuş hazırlığı yapılıyor...</span>
+            </div>
+
+            <!-- Bottom decorative altitude meter -->
+            <div class="auth-altitude">
+                <div class="alt-bar"><div class="alt-fill"></div></div>
+                <span class="alt-label">ALT 0 ft</span>
+            </div>
         </div>
     </div>
 
