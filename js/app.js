@@ -89,7 +89,8 @@ canvas.setEnvironment(env.obstacles,env.nfz,env.letters);canvas.draw();
 clearBlocks();logConsole('═'.repeat(30));logConsole('📋 Görev: '+m.name);logConsole(m.briefing);logConsole('═'.repeat(30))}
 
 // ═══ BLOK PROGRAMLAMA ═══
-const BLOCK_DEFS={MOTOR_AC:{color:'#6e7681',icon:'⚙️',label:'Motor Aç',params:[]},HAVALAN:{color:'#238636',icon:'🚀',label:'Havalan',params:[{key:'height',label:'m',def:10}]},ROTA_GIT:{color:'#1f6feb',icon:'📍',label:'Git',params:[{key:'x',label:'X',def:0},{key:'y',label:'Y',def:0}]},FOTO_CEK:{color:'#8b5cf6',icon:'📸',label:'Foto',params:[]},BEKLE:{color:'#d29922',icon:'⏳',label:'Bekle',params:[{key:'seconds',label:'sn',def:3}]},KARGO_BIRAK:{color:'#f0883e',icon:'📦',label:'Kargo',params:[]},IN_YAP:{color:'#f85149',icon:'🔽',label:'İniş',params:[]}};
+// BURASI YENİ BLOKLARA GÖRE GÜNCELLENDİ (YUKSEL, ALCAL, EVE_DON EKLENDİ)
+const BLOCK_DEFS={MOTOR_AC:{color:'#6e7681',icon:'⚙️',label:'Motor Aç',params:[]},HAVALAN:{color:'#238636',icon:'🚀',label:'Havalan',params:[{key:'height',label:'m',def:10}]},YUKSEL:{color:'#0ea5e9',icon:'🔼',label:'Yüksel',params:[{key:'amount',label:'m',def:5}]},ALCAL:{color:'#0ea5e9',icon:'🔽',label:'Alçal',params:[{key:'amount',label:'m',def:5}]},ROTA_GIT:{color:'#1f6feb',icon:'📍',label:'Git',params:[{key:'x',label:'X',def:0},{key:'y',label:'Y',def:0}]},EVE_DON:{color:'#ab7df8',icon:'🏠',label:'Eve Dön',params:[]},FOTO_CEK:{color:'#8b5cf6',icon:'📸',label:'Foto',params:[]},BEKLE:{color:'#d29922',icon:'⏳',label:'Bekle',params:[{key:'seconds',label:'sn',def:3}]},KARGO_BIRAK:{color:'#f0883e',icon:'📦',label:'Kargo',params:[]},IN_YAP:{color:'#f85149',icon:'🔽',label:'İniş',params:[]}};
 
 function addBlock(type){const d=BLOCK_DEFS[type],id=Date.now();blocks.push({id,type,params:{}});const c=document.getElementById('block-program'),div=document.createElement('div');div.className='block-item';div.style.background=d.color;div.id='block-'+id;
 let ph='';d.params.forEach(p=>{ph+=`<span style="margin-left:4px;font-size:10px">${p.label}:</span><input type="number" value="${p.def}" onchange="updateBlockParam(${id},'${p.key}',this.value)">`});
@@ -107,7 +108,10 @@ if(currentUser&&activeMission){try{const m=activeMission.mission;await DB.saveMi
 missionProgress[m.id]={score:score.points,grade:score.grade};await DB.saveProfile(currentUser.uid,{lastActive:Date.now(),totalMissions:(userProfile.totalMissions||0)+1});userProfile.totalMissions=(userProfile.totalMissions||0)+1;
 if(score.points>=m.minScore)showLevelComplete(score,activeMission);
 await checkBadges(score);renderMissionMap()}catch(e){console.error(e)}}}
-function getDefP(t){return t==='HAVALAN'?{height:10}:t==='ROTA_GIT'?{x:0,y:0}:t==='BEKLE'?{seconds:3}:{}}
+
+// BURAYA DA YUKSEL VE ALCAL İÇİN VARSAYILAN DEĞERLER EKLENDİ
+function getDefP(t){return t==='HAVALAN'?{height:10}:t==='ROTA_GIT'?{x:0,y:0}:(t==='YUKSEL'||t==='ALCAL')?{amount:5}:t==='BEKLE'?{seconds:3}:{}}
+
 function showScore(s){const c={A:'#3fb950',B:'#58a6ff',C:'#d29922',D:'#f0883e',F:'#f85149'};const stars=s.points>=90?'⭐⭐⭐':s.points>=75?'⭐⭐☆':s.points>=60?'⭐☆☆':'☆☆☆';
 document.getElementById('score-display').innerHTML=`<div class="score-big" style="color:${c[s.grade]}">${s.points}/100</div><div class="score-stars">${stars}</div><div style="font-size:20px;color:${c[s.grade]};font-weight:800">${s.grade}</div><div class="dim-text" style="margin-top:8px">⏱${s.duration}s | 📍${s.distance}m | 🔋%${s.batteryLeft}</div>`}
 
