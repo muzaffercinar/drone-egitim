@@ -1,5 +1,5 @@
 /* ═══ DRONE SİMÜLASYON MOTORU (JavaScript) ═══
-   Uzman Seviye - 3D Hareket ve Güvenlik Protokolleri Eklenmiştir */
+   Python'dan port edilmiş — tarayıcıda çalışır */
 
 class DroneSim {
     constructor() {
@@ -56,12 +56,11 @@ class DroneSim {
         return false;
     }
 
-    _checkObstacle(px, py, pz) {
+    _checkObstacle(px, py) {
         for (const o of this.obstacles) {
-            const distXY = Math.sqrt((px - o.x) ** 2 + (py - o.y) ** 2);
-            const objHeight = o.type === 'building' ? 20 : 10; 
-            if (distXY < (o.size / 2 + 3) && pz <= objHeight) {
-                this._log(`💥 ENGEL: ${o.type} (${o.x},${o.y}) yüksekliği kurtarmadı! Durduruluyor.`, 'error');
+            const dist = Math.sqrt((px - o.x) ** 2 + (py - o.y) ** 2);
+            if (dist < (o.size / 2 + 3)) {
+                this._log(`💥 ENGEL: ${o.type} (${o.x},${o.y})! Durduruluyor.`, 'error');
                 return true;
             }
         }
@@ -69,35 +68,27 @@ class DroneSim {
     }
 
     async _animatedMove(tx, ty, tz, steps = 10) {
-        tx = Number(tx); ty = Number(ty); tz = Number(tz);
-        const startX = this.x, startY = this.y, startZ = this.z;
+        const dx = (tx - this.x) / steps;
+        const dy = (ty - this.y) / steps;
+        const dz = (tz - this.z) / steps;
+        const startX = this.x, startY = this.y;
 
-        for (let i = 1; i <= steps; i++) {
+        for (let i = 0; i < steps; i++) {
             if (this.cancelled) return false;
-            
-            let expectedX = startX + (tx - startX) * (i / steps);
-            let expectedY = startY + (ty - startY) * (i / steps);
-            let expectedZ = startZ + (tz - startZ) * (i / steps);
-
             let wx = 0, wy = 0;
             if (this.wind.active && this.wind.speed > 0) {
                 const rad = this.wind.dir * Math.PI / 180;
-                const turbulence = Math.random() * 0.8; 
-                wx = Math.sin(rad) * this.wind.speed * 0.1 * turbulence;
-                wy = Math.cos(rad) * this.wind.speed * 0.1 * turbulence;
+                wx = Math.sin(rad) * this.wind.speed * 0.15;
+                wy = Math.cos(rad) * this.wind.speed * 0.15;
             }
-
-            const nx = expectedX + wx;
-            const ny = expectedY + wy;
-            
-            if (this._checkNFZ(nx, ny) || this._checkObstacle(nx, ny, expectedZ)) return false;
-            
-            this.x = nx; 
-            this.y = ny; 
-            this.z = expectedZ;
+            const nx = this.x + dx + wx;
+            const ny = this.y + dy + wy;
+            if (this._checkNFZ(nx, ny) || this._checkObstacle(nx, ny)) return false;
+            this.x = nx; this.y = ny; this.z += dz;
             this.stats.maxAlt = Math.max(this.stats.maxAlt, this.z);
             
-            if (this.letters && this.z <= 5 && this.targetName) { 
+            // Check letters
+            if (this.letters && this.z <= 5 && this.targetName) { // Need to be low to collect
                 const expectedChar = this.targetName[this.stats.collectedLetters.length];
                 if (expectedChar) {
                     for (const l of this.letters) {
@@ -114,11 +105,9 @@ class DroneSim {
             this._update();
             await this._sleep(120);
         }
-        
         this.x = Math.round(tx * 10) / 10;
         this.y = Math.round(ty * 10) / 10;
         this.z = Math.round(tz * 10) / 10;
-        
         const dist = Math.sqrt((this.x - startX) ** 2 + (this.y - startY) ** 2);
         this.stats.distance += dist;
         this._update();
@@ -127,6 +116,7 @@ class DroneSim {
 
     _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+    // ═══ KOMUTLAR ═══
     async motorAc() {
         if (this.motorOn) { this._log('Motorlar zaten açık.', 'warn'); return true; }
         this.motorOn = true;
@@ -151,33 +141,10 @@ class DroneSim {
         return ok;
     }
 
-    async yuksel(miktar) {
-        if (this.mode !== 'Havada') { this._log('HATA: Havada olmalı!', 'error'); return false; }
-        const yeniZ = Math.min(this.maxAlt, this.z + miktar);
-        this._log(`🔼 Yükseliyor → ${yeniZ}m`);
-        if (this._consumeBattery(miktar * 0.15)) {
-            this._log('⚠️ Batarya kritik!', 'warn'); return false;
-        }
-        return await this._animatedMove(this.x, this.y, yeniZ);
-    }
-
-    async alcal(miktar) {
-        if (this.mode !== 'Havada') { this._log('HATA: Havada olmalı!', 'error'); return false; }
-        const yeniZ = Math.max(0, this.z - miktar);
-        if (yeniZ === 0) {
-            return await this.inYap();
-        }
-        this._log(`🔽 Alçalıyor → ${yeniZ}m`);
-        if (this._consumeBattery(miktar * 0.05)) {
-            this._log('⚠️ Batarya kritik!', 'warn'); return false;
-        }
-        return await this._animatedMove(this.x, this.y, yeniZ);
-    }
-
     async rotaGit(tx, ty) {
         if (this.mode !== 'Havada') { this._log('HATA: Drone havada değil!', 'error'); return false; }
         const dist = Math.sqrt((tx - this.x) ** 2 + (ty - this.y) ** 2);
-        this._log(`📍 Rota: İleri gidiliyor | ${dist.toFixed(1)}m`);
+        this._log(`📍 Rota: (${this.x.toFixed(1)},${this.y.toFixed(1)}) → (${tx},${ty}) | ${dist.toFixed(1)}m`);
         if (this._consumeBattery(dist * 0.4)) {
             this._log('⚠️ Batarya kritik!', 'warn'); return false;
         }
@@ -186,7 +153,7 @@ class DroneSim {
 
     async fotoCek() {
         if (!this.hasCamera) { this._log('HATA: Kamera yok!', 'error'); return false; }
-        this._log(`📸 Fotoğraf — (${this.x}, ${this.y}, Yükseklik: ${this.z})`);
+        this._log(`📸 Fotoğraf — (${this.x}, ${this.y}, ${this.z})`);
         this._consumeBattery(1); await this._sleep(800);
         this._log('✅ Fotoğraf kaydedildi.');
         this.stats.photos++;
@@ -207,7 +174,6 @@ class DroneSim {
     }
 
     async kargoBirak() {
-        if (this.z > 15) { this._log('⚠️ Kargo bırakmak için çok yüksek! Alçalın.', 'warn'); return false; }
         this._log('📦 Kargo bırakılıyor...');
         this._consumeBattery(0.5); await this._sleep(1000);
         this._log(`✅ Kargo bırakıldı — (${this.x}, ${this.y})`);
@@ -227,25 +193,18 @@ class DroneSim {
     }
 
     async eveDon() {
-        this._log('🏠 EVE DÖNÜŞ (RTH) BAŞLADI!', 'warn');
+        this._log('🏠 EVE DÖNÜŞ (RTH)!', 'warn');
         this.mode = 'Eve Dönüyor'; this._update();
-        
-        if (this.z < 20) {
-            this._log('🔼 Güvenli irtifaya çıkılıyor...');
-            await this._animatedMove(this.x, this.y, 20, 5);
-        }
-
         if (this.x !== 0 || this.y !== 0) {
             await this._animatedMove(0, 0, this.z, 15);
         }
-
         await this._animatedMove(0, 0, 0, 10);
         this.motorOn = false; this.mode = 'Yerde';
-        this._log('✅ Eve dönüş güvenle tamamlandı.');
+        this._log('✅ Eve dönüş tamamlandı.');
         this._update();
-        return true;
     }
 
+    // ═══ GÖREV ÇALIŞTIR ═══
     async runMission(tasks) {
         this.cancelled = false;
         const startTime = Date.now();
@@ -258,8 +217,8 @@ class DroneSim {
 
         for (let i = 0; i < tasks.length; i++) {
             if (this.cancelled) { this._log('⛔ İptal edildi.', 'warn'); break; }
-            if (this.battery < 20 && tasks[i].type !== 'IN_YAP' && tasks[i].type !== 'EVE_DON') {
-                this._log(`⚠️ BATARYA KRİTİK (%${this.battery.toFixed(1)})! Acil dönüş...`, 'warn');
+            if (this.battery < 20 && tasks[i].type !== 'IN_YAP') {
+                this._log(`⚠️ BATARYA KRİTİK (%${this.battery.toFixed(1)})!`, 'warn');
                 await this.eveDon(); break;
             }
 
@@ -269,18 +228,10 @@ class DroneSim {
             let ok = false;
             switch (t.type) {
                 case 'MOTOR_AC': ok = await this.motorAc(); break;
-                case 'HAVALAN': ok = await this.havalan(Number(t.params?.height || 10)); break;
-                case 'YUKSEL': ok = await this.yuksel(Number(t.params?.amount || 5)); break;
-                case 'ALCAL': ok = await this.alcal(Number(t.params?.amount || 5)); break;
-                
-                // HATA BURADAYDI, DÜZELTİLDİ:
-                case 'ROTA_GIT': 
-                    ok = await this.rotaGit(this.x + Number(t.params?.x || 0), this.y + Number(t.params?.y || 0)); 
-                    break;
-                    
-                case 'EVE_DON': ok = await this.eveDon(); break;
+                case 'HAVALAN': ok = await this.havalan(t.params?.height || 10); break;
+                case 'ROTA_GIT': ok = await this.rotaGit(t.params?.x || 0, t.params?.y || 0); break;
                 case 'FOTO_CEK': ok = await this.fotoCek(); break;
-                case 'BEKLE': ok = await this.bekle(Number(t.params?.seconds || 3)); break;
+                case 'BEKLE': ok = await this.bekle(t.params?.seconds || 3); break;
                 case 'KARGO_BIRAK': ok = await this.kargoBirak(); break;
                 case 'IN_YAP': ok = await this.inYap(); break;
             }
@@ -326,6 +277,7 @@ class DroneSim {
     }
 }
 
+// ═══ SEVİYE SİSTEMİ ═══
 const LEVELS = {
     1: { name:'Başlangıç', wind:false, windSpeed:0, obstacles:[], nfz:[], batteryBonus:20 },
     2: { name:'Kolay', wind:true, windSpeed:2,
@@ -336,4 +288,22 @@ const LEVELS = {
     4: { name:'Zor', wind:true, windSpeed:7,
          obstacles:[{x:15,y:10,size:8,type:'building'},{x:-10,y:20,size:6,type:'tree'},{x:30,y:-5,size:10,type:'building'}],
          nfz:[{x:-25,y:-20,radius:15,name:'Havaalanı'},{x:40,y:30,radius:10,name:'Askeri Alan'}], batteryBonus:-10 },
-    5:
+    5: { name:'Uzman', wind:true, windSpeed:10,
+         obstacles:[{x:10,y:5,size:7,type:'building'},{x:-15,y:15,size:5,type:'tree'},{x:25,y:-10,size:9,type:'building'},{x:-5,y:35,size:6,type:'tree'},{x:35,y:20,size:8,type:'building'}],
+         nfz:[{x:-20,y:-15,radius:12,name:'NFZ-A'},{x:30,y:35,radius:10,name:'NFZ-B'},{x:-35,y:25,radius:8,name:'NFZ-C'}], batteryBonus:-20 }
+};
+
+// ═══ ROZET SİSTEMİ ═══
+const BADGES = {
+    ilk_ucus:  { icon:'🛫', name:'İlk Uçuş',      desc:'İlk görevi tamamla' },
+    pilot:     { icon:'✈️', name:'Pilot',          desc:'5 görev tamamla' },
+    kaptan:    { icon:'🎖️', name:'Kaptan Pilot',   desc:'15 görev tamamla' },
+    fotograf:  { icon:'📸', name:'Fotoğrafçı',     desc:'10 fotoğraf çek' },
+    kargoci:   { icon:'📦', name:'Kargoci',        desc:'5 kargo teslim et' },
+    yuksek:    { icon:'🏔️', name:'Yüksek Uçuş',   desc:'50m yüksekliğe ulaş' },
+    maraton:   { icon:'🏃', name:'Maratoncı',      desc:'500m toplam mesafe' },
+    puan_a:    { icon:'🏆', name:'A Notu',         desc:'Bir görevde A notu al' },
+    ruzgar:    { icon:'🌪️', name:'Fırtına Avcısı', desc:'7+ m/s rüzgarda görev tamamla' },
+    harf_oyunu:{ icon:'🔤', name:'Harf Avcısı',    desc:'Harf tarlasında adını başarıyla yazdın' },
+    seviye5:   { icon:'💀', name:'Uzman Pilot',    desc:'Seviye 5 tamamla' }
+};
