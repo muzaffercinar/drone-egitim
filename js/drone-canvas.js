@@ -1,296 +1,333 @@
-/* ═══ DRONE CANVAS RENDERER (HTML5 Canvas) ═══ */
+/* ═══ DRONE SİMÜLASYON MOTORU (JavaScript) ═══
+   Python'dan port edilmiş — tarayıcıda çalışır */
 
-class DroneCanvas {
-    constructor(canvasId) {
-        this.canvas = document.getElementById(canvasId);
-        this.ctx = this.canvas.getContext('2d');
-        this.trail = [];
-        this.drone = { x:0, y:0, z:0, motor:false, mode:'Yerde' };
-        this.wind = { active:false, dir:0, speed:0 };
-        this.obstacles = [];
-        this.nfzZones = [];
-        this.propAngle = 0;
-        this._resize();
-        window.addEventListener('resize', () => this._resize());
-        this._animate();
-    }
-
-    _resize() {
-        const r = this.canvas.parentElement.getBoundingClientRect();
-        this.canvas.width = r.width;
-        this.canvas.height = r.height;
-        this.draw();
-    }
-
-    update(data) {
-        if ((data.x !== this.drone.x || data.y !== this.drone.y) && data.motor) {
-            this.trail.push({ x: this.drone.x, y: this.drone.y });
-            if (this.trail.length > 500) this.trail = this.trail.slice(-500);
-        }
-        this.drone = { x:data.x, y:data.y, z:data.z, motor:data.motor, mode:data.mode };
-        if (data.wind) this.wind = data.wind;
-    }
-
-    setEnvironment(obstacles, nfzZones, letters = []) {
-        this.obstacles = obstacles || [];
-        this.nfzZones = nfzZones || [];
-        this.letters = letters;
+class DroneSim {
+    constructor() {
+        this.x = 0; this.y = 0; this.z = 0;
+        this.battery = 100; this.motorOn = false;
+        this.mode = 'Yerde'; this.cancelled = false;
+        this.maxAlt = 50; this.hasCamera = true; this.hasGPS = true;
+        this.wind = { active: false, dir: 0, speed: 0 };
+        this.obstacles = []; this.nfzZones = [];
+        this.stats = { distance: 0, photos: 0, cargo: 0, maxAlt: 0 };
+        this.onUpdate = null; this.onLog = null;
+        this._animFrame = null;
     }
 
     reset() {
-        this.trail = [];
-        this.drone = { x:0, y:0, z:0, motor:false, mode:'Yerde' };
-    }
-
-    _w2s(wx, wy) {
-        const w = this.canvas.width, h = this.canvas.height;
-        const scale = Math.min(w, h) / 160;
-        return [w/2 + wx * scale, h/2 - wy * scale];
-    }
-
-    _w2sR(r) {
-        return r * Math.min(this.canvas.width, this.canvas.height) / 160;
-    }
-
-    draw() {
-        const ctx = this.ctx;
-        const w = this.canvas.width, h = this.canvas.height;
-        if (w < 10 || h < 10) return;
-        const cx = w/2, cy = h/2;
-
-        // Arka plan
-        ctx.fillStyle = '#0a0e14';
-        ctx.fillRect(0, 0, w, h);
-
-        // Grid
-        ctx.strokeStyle = '#1a2233'; ctx.lineWidth = 1;
-        for (let i = -80; i <= 80; i += 10) {
-            let [sx, sy] = this._w2s(i, -80);
-            let [ex, ey] = this._w2s(i, 80);
-            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
-            [sx, sy] = this._w2s(-80, i);
-            [ex, ey] = this._w2s(80, i);
-            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+        this.x = 0; this.y = 0; this.z = 0;
+        this.battery = 100; this.motorOn = false;
+        this.mode = 'Yerde'; this.cancelled = false;
+        this.stats = { distance: 0, photos: 0, cargo: 0, maxAlt: 0, collectedLetters: [] };
+        if (this.letters) {
+            this.letters.forEach(l => l.collected = false);
         }
+        this._update();
+    }
 
-        // Eksenler
-        ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
-        ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#8b949e'; ctx.font = '10px Consolas';
-        ctx.fillText('X+', w-20, cy-8);
-        ctx.fillText('Y+', cx+8, 14);
+    _log(msg, type = 'info') {
+        if (this.onLog) this.onLog(msg, type);
+    }
 
-        // Yasak bölgeler
+    _update() {
+        if (this.onUpdate) this.onUpdate({
+            x: this.x, y: this.y, z: this.z,
+            battery: this.battery, motor: this.motorOn,
+            mode: this.mode, wind: this.wind
+        });
+    }
+
+    _consumeBattery(amount) {
+        const mult = 1.0 + Math.max(0, (50 - this.battery) * 0.02);
+        const windExtra = this.wind.active ? this.wind.speed * 0.08 : 0;
+        this.battery = Math.max(0, this.battery - (amount * mult + windExtra));
+        this._update();
+        return this.battery < 20;
+    }
+
+    _checkNFZ(px, py) {
         for (const z of this.nfzZones) {
-            const [zx, zy] = this._w2s(z.x, z.y);
-            const r = this._w2sR(z.radius);
-            ctx.beginPath(); ctx.arc(zx, zy, r, 0, Math.PI*2);
-            ctx.fillStyle = 'rgba(248,81,73,0.08)'; ctx.fill();
-            ctx.strokeStyle = '#f85149'; ctx.lineWidth = 2; ctx.setLineDash([5,3]);
-            ctx.stroke(); ctx.setLineDash([]);
-            ctx.fillStyle = '#f85149'; ctx.font = 'bold 10px Consolas';
-            ctx.textAlign = 'center'; ctx.fillText(`🚫 ${z.name}`, zx, zy+4);
+            const dist = Math.sqrt((px - z.x) ** 2 + (py - z.y) ** 2);
+            if (dist <= z.radius) {
+                this._log(`🚫 YASAK BÖLGE: '${z.name}'! Giriş engellendi.`, 'error');
+                return true;
+            }
         }
+        return false;
+    }
 
-        // Engeller
+    _checkObstacle(px, py) {
         for (const o of this.obstacles) {
-            const [ox, oy] = this._w2s(o.x, o.y);
-            const r = this._w2sR(o.size / 2);
-            if (o.type === 'building') {
-                ctx.fillStyle = '#2d333b'; ctx.strokeStyle = '#6e7681'; ctx.lineWidth = 2;
-                ctx.fillRect(ox-r, oy-r, r*2, r*2);
-                ctx.strokeRect(ox-r, oy-r, r*2, r*2);
-                ctx.font = `${Math.max(10, r)}px Consolas`;
-                ctx.textAlign = 'center'; ctx.fillText('🏢', ox, oy+r*0.3);
-            } else {
-                ctx.beginPath(); ctx.arc(ox, oy, r, 0, Math.PI*2);
-                ctx.fillStyle = '#0d4421'; ctx.fill();
-                ctx.strokeStyle = '#2ea043'; ctx.lineWidth = 2; ctx.stroke();
-                ctx.font = `${Math.max(10, r)}px Consolas`;
-                ctx.textAlign = 'center'; ctx.fillText('🌳', ox, oy+r*0.3);
+            const dist = Math.sqrt((px - o.x) ** 2 + (py - o.y) ** 2);
+            if (dist < (o.size / 2 + 3)) {
+                this._log(`💥 ENGEL: ${o.type} (${o.x},${o.y})! Durduruluyor.`, 'error');
+                return true;
             }
         }
-
-        // Harfler
-        if (this.letters && this.letters.length > 0) {
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            for (const l of this.letters) {
-                const [lx, ly] = this._w2s(l.x, l.y);
-                if (l.collected) {
-                    ctx.font = 'bold 12px Consolas';
-                    ctx.fillStyle = '#3fb950';
-                    ctx.fillText('✔️', lx, ly);
-                } else {
-                    ctx.font = 'bold 16px Inter, sans-serif';
-                    ctx.fillStyle = '#f0d78c';
-                    ctx.fillText(l.char, lx, ly);
-                }
-                ctx.strokeStyle = l.collected ? '#2ea043' : '#d4a843';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.arc(lx, ly, 12, 0, Math.PI*2);
-                ctx.stroke();
-            }
-        }
-
-        // Home noktası
-        ctx.fillStyle = '#f0883e'; ctx.font = 'bold 11px Consolas';
-        ctx.textAlign = 'center'; ctx.fillText('⌂ HOME', cx, cy+20);
-        ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2);
-        ctx.strokeStyle = '#f0883e'; ctx.lineWidth = 2; ctx.stroke();
-
-        // Uçuş izi
-        if (this.trail.length > 1) {
-            ctx.strokeStyle = '#1f6feb'; ctx.lineWidth = 2;
-            ctx.beginPath();
-            let [fx, fy] = this._w2s(this.trail[0].x, this.trail[0].y);
-            ctx.moveTo(fx, fy);
-            for (let i = 1; i < this.trail.length; i++) {
-                let [tx, ty] = this._w2s(this.trail[i].x, this.trail[i].y);
-                ctx.lineTo(tx, ty);
-            }
-            ctx.stroke();
-            // Son nokta → drone
-            const [lx, ly] = this._w2s(this.trail[this.trail.length-1].x, this.trail[this.trail.length-1].y);
-            const [dx, dy] = this._w2s(this.drone.x, this.drone.y);
-            ctx.setLineDash([3,3]);
-            ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(dx, dy); ctx.stroke();
-            ctx.setLineDash([]);
-        }
-
-        // Drone çiz
-        const [dx, dy] = this._w2s(this.drone.x, this.drone.y);
-        this._drawDrone(dx, dy);
-
-        // Rüzgar göstergesi
-        if (this.wind.active) this._drawWind(w, h);
+        return false;
     }
 
-    _drawDrone(px, py) {
-        const ctx = this.ctx;
-        const kol = 32, motorR = 8, gw = 14, gh = 18;
-        const positions = [
-            [px-kol, py-kol], [px+kol, py-kol],
-            [px+kol, py+kol], [px-kol, py+kol]
-        ];
+    // 🎯 GÜNCELLENDİ: LERP ve Rüzgar Sapması düzeltildi.
+    async _animatedMove(tx, ty, tz, steps = 10) {
+        // Form inputlarından string gelebilir, garanti olması için Number'a çeviriyoruz
+        tx = Number(tx); 
+        ty = Number(ty); 
+        tz = Number(tz);
 
-        // Gölge
-        if (this.drone.z > 0) {
-            const off = Math.min(this.drone.z * 0.4, 15);
-            const sr = 30;
-            ctx.beginPath(); ctx.ellipse(px+off, py+off, sr, sr*0.7, 0, 0, Math.PI*2);
-            ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fill();
-        }
+        const startX = this.x, startY = this.y, startZ = this.z;
 
-        // Pervane blur
-        if (this.drone.motor) {
-            for (const [kx, ky] of positions) {
-                ctx.beginPath(); ctx.arc(kx, ky, 14, 0, Math.PI*2);
-                ctx.fillStyle = 'rgba(31,111,235,0.1)'; ctx.fill();
-                ctx.strokeStyle = 'rgba(88,166,255,0.3)'; ctx.lineWidth = 1;
-                ctx.setLineDash([2,4]); ctx.stroke(); ctx.setLineDash([]);
+        for (let i = 1; i <= steps; i++) {
+            if (this.cancelled) return false;
+            
+            // LERP (Doğrusal İnterpolasyon)
+            let expectedX = startX + (tx - startX) * (i / steps);
+            let expectedY = startY + (ty - startY) * (i / steps);
+            let expectedZ = startZ + (tz - startZ) * (i / steps);
+
+            // Sadece görsel titreme (tamamen rotadan sapmayı engeller)
+            let wx = 0, wy = 0;
+            if (this.wind.active && this.wind.speed > 0) {
+                const rad = this.wind.dir * Math.PI / 180;
+                const turbulence = Math.random() * 0.8; 
+                wx = Math.sin(rad) * this.wind.speed * 0.1 * turbulence;
+                wy = Math.cos(rad) * this.wind.speed * 0.1 * turbulence;
             }
-        }
 
-        // Kollar
-        for (const [kx, ky] of positions) {
-            ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(kx, ky);
-            ctx.strokeStyle = '#4a4f5c'; ctx.lineWidth = 4; ctx.stroke();
-            ctx.strokeStyle = '#6e7681'; ctx.lineWidth = 2; ctx.stroke();
-        }
-
-        // Motorlar
-        for (const [kx, ky] of positions) {
-            ctx.beginPath(); ctx.arc(kx, ky, motorR, 0, Math.PI*2);
-            ctx.fillStyle = '#2d333b'; ctx.fill();
-            ctx.strokeStyle = '#4a4f5c'; ctx.lineWidth = 2; ctx.stroke();
-            ctx.beginPath(); ctx.arc(kx, ky, 3, 0, Math.PI*2);
-            ctx.fillStyle = '#555d6b'; ctx.fill();
-        }
-
-        // Pervane kanatları
-        if (this.drone.motor) {
-            const a = this.propAngle * Math.PI / 180;
-            ctx.strokeStyle = '#a0c4ff'; ctx.lineWidth = 2;
-            for (const [kx, ky] of positions) {
-                for (const off of [0, Math.PI/2]) {
-                    const lx = Math.cos(a+off)*12, ly = Math.sin(a+off)*12;
-                    ctx.beginPath(); ctx.moveTo(kx-lx, ky-ly); ctx.lineTo(kx+lx, ky+ly); ctx.stroke();
+            const nx = expectedX + wx;
+            const ny = expectedY + wy;
+            
+            if (this._checkNFZ(nx, ny) || this._checkObstacle(nx, ny)) return false;
+            
+            this.x = nx; 
+            this.y = ny; 
+            this.z = expectedZ;
+            this.stats.maxAlt = Math.max(this.stats.maxAlt, this.z);
+            
+            // Harf Toplama
+            if (this.letters && this.z <= 5 && this.targetName) { 
+                const expectedChar = this.targetName[this.stats.collectedLetters.length];
+                if (expectedChar) {
+                    for (const l of this.letters) {
+                        if (!l.collected && l.char === expectedChar && Math.sqrt((this.x - l.x)**2 + (this.y - l.y)**2) < 4) {
+                            l.collected = true;
+                            this.stats.collectedLetters.push(l.char);
+                            this._log(`🔤 Harf Toplandı: ${l.char}`);
+                            break;
+                        }
+                    }
                 }
             }
+
+            this._update();
+            await this._sleep(120);
+        }
+        
+        // Hedefe tam oturtma
+        this.x = Math.round(tx * 10) / 10;
+        this.y = Math.round(ty * 10) / 10;
+        this.z = Math.round(tz * 10) / 10;
+        
+        const dist = Math.sqrt((this.x - startX) ** 2 + (this.y - startY) ** 2);
+        this.stats.distance += dist;
+        this._update();
+        return true;
+    }
+
+    _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // ═══ KOMUTLAR ═══
+    async motorAc() {
+        if (this.motorOn) { this._log('Motorlar zaten açık.', 'warn'); return true; }
+        this.motorOn = true;
+        this._log('🔧 Motorlar çalıştırıldı.');
+        this._update(); await this._sleep(500);
+        return true;
+    }
+
+    async havalan(height) {
+        if (!this.motorOn) { this._log('HATA: Motorlar kapalı!', 'error'); return false; }
+        if (height > this.maxAlt) {
+            this._log(`UYARI: ${height}m sınır üstü → ${this.maxAlt}m`, 'warn');
+            height = this.maxAlt;
+        }
+        this.mode = 'Havada';
+        this._log(`🚀 Havalanıyor → ${height}m`);
+        if (this._consumeBattery(3 + height * 0.1)) {
+            this._log('⚠️ Batarya kritik!', 'warn'); return false;
+        }
+        const ok = await this._animatedMove(this.x, this.y, height);
+        if (ok) this._log(`✅ Yükseklik ${this.z}m — havada.`);
+        return ok;
+    }
+
+    async rotaGit(tx, ty) {
+        if (this.mode !== 'Havada') { this._log('HATA: Drone havada değil!', 'error'); return false; }
+        const dist = Math.sqrt((tx - this.x) ** 2 + (ty - this.y) ** 2);
+        this._log(`📍 Rota: (${this.x.toFixed(1)},${this.y.toFixed(1)}) → (${tx},${ty}) | ${dist.toFixed(1)}m`);
+        if (this._consumeBattery(dist * 0.4)) {
+            this._log('⚠️ Batarya kritik!', 'warn'); return false;
+        }
+        return await this._animatedMove(tx, ty, this.z);
+    }
+
+    async fotoCek() {
+        if (!this.hasCamera) { this._log('HATA: Kamera yok!', 'error'); return false; }
+        this._log(`📸 Fotoğraf — (${this.x}, ${this.y}, ${this.z})`);
+        this._consumeBattery(1); await this._sleep(800);
+        this._log('✅ Fotoğraf kaydedildi.');
+        this.stats.photos++;
+        return true;
+    }
+
+    async bekle(seconds) {
+        if (this.mode !== 'Havada') { this._log('HATA: Havada olmalı!', 'error'); return false; }
+        this._log(`⏳ Bekleniyor: ${seconds}s`);
+        const steps = Math.floor(seconds / 0.3);
+        for (let i = 0; i < steps; i++) {
+            if (this.cancelled) return false;
+            this._consumeBattery(0.2);
+            await this._sleep(300);
+        }
+        this._log('✅ Bekleme tamamlandı.');
+        return true;
+    }
+
+    async kargoBirak() {
+        this._log('📦 Kargo bırakılıyor...');
+        this._consumeBattery(0.5); await this._sleep(1000);
+        this._log(`✅ Kargo bırakıldı — (${this.x}, ${this.y})`);
+        this.stats.cargo++;
+        return true;
+    }
+
+    async inYap() {
+        if (this.mode === 'Yerde') { this._log('Zaten yerde.', 'warn'); return true; }
+        this._log(`🔽 İniş — ${this.z}m`);
+        this._consumeBattery(1.5);
+        await this._animatedMove(this.x, this.y, 0);
+        this.motorOn = false; this.mode = 'Yerde';
+        this._log(`✅ İniş tamamlandı.`);
+        this._update();
+        return true;
+    }
+
+    async eveDon() {
+        this._log('🏠 EVE DÖNÜŞ (RTH)!', 'warn');
+        this.mode = 'Eve Dönüyor'; this._update();
+        if (this.x !== 0 || this.y !== 0) {
+            await this._animatedMove(0, 0, this.z, 15);
+        }
+        await this._animatedMove(0, 0, 0, 10);
+        this.motorOn = false; this.mode = 'Yerde';
+        this._log('✅ Eve dönüş tamamlandı.');
+        this._update();
+    }
+
+    // ═══ GÖREV ÇALIŞTIR ═══
+    async runMission(tasks) {
+        this.cancelled = false;
+        const startTime = Date.now();
+        const startBat = this.battery;
+        let completed = 0, total = tasks.length;
+
+        this._log('═'.repeat(35));
+        this._log(`▶ GÖREV BAŞLADI — ${total} görev`);
+        this._log('═'.repeat(35));
+
+        for (let i = 0; i < tasks.length; i++) {
+            if (this.cancelled) { this._log('⛔ İptal edildi.', 'warn'); break; }
+            if (this.battery < 20 && tasks[i].type !== 'IN_YAP') {
+                this._log(`⚠️ BATARYA KRİTİK (%${this.battery.toFixed(1)})!`, 'warn');
+                await this.eveDon(); break;
+            }
+
+            const t = tasks[i];
+            this._log(`── Görev ${i + 1}/${total}: ${t.label || t.type}`);
+
+            let ok = false;
+            switch (t.type) {
+                case 'MOTOR_AC': ok = await this.motorAc(); break;
+                case 'HAVALAN': ok = await this.havalan(t.params?.height || 10); break;
+                // 🎯 GÜNCELLENDİ: Göreceli hareket eklendi (Bulunduğu konuma ekleyerek gider)
+                case 'ROTA_GIT': 
+                    let eklenecekX = Number(t.params?.x || 0);
+                    let eklenecekY = Number(t.params?.y || 0);
+                    ok = await this.rotaGit(this.x + eklenecekX, this.y + eklenecekY); 
+                    break;
+                case 'FOTO_CEK': ok = await this.fotoCek(); break;
+                case 'BEKLE': ok = await this.bekle(t.params?.seconds || 3); break;
+                case 'KARGO_BIRAK': ok = await this.kargoBirak(); break;
+                case 'IN_YAP': ok = await this.inYap(); break;
+            }
+            if (ok) completed++;
+            else if (this.battery < 20) { await this.eveDon(); break; }
+            await this._sleep(200);
         }
 
-        // Gövde
-        ctx.fillStyle = '#2d333b';
-        ctx.strokeStyle = '#4a4f5c'; ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(px-gw, py-gh, gw*2, gh*2, 4);
-        ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#363d49';
-        ctx.fillRect(px-gw+3, py-gh+3, (gw-3)*2, (gh-3)*2);
+        const duration = (Date.now() - startTime) / 1000;
+        const score = this._calculateScore(completed, total, startBat, duration);
 
-        // LED'ler
-        ctx.fillStyle = '#ff3333';
-        ctx.beginPath(); ctx.arc(px-gw+5, py-gh+5, 3, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#33ff33';
-        ctx.beginPath(); ctx.arc(px+gw-5, py-gh+5, 3, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#ccccff';
-        ctx.beginPath(); ctx.arc(px-gw+5, py+gh-5, 2, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(px+gw-5, py+gh-5, 2, 0, Math.PI*2); ctx.fill();
+        this._log('═'.repeat(35));
+        this._log('■ GÖREV TAMAMLANDI');
+        this._log(`  Skor: ${score.points}/100 (${score.grade})`);
+        this._log(`  Süre: ${score.duration}s | Mesafe: ${score.distance}m`);
+        this._log('═'.repeat(35));
 
-        // Kamera
-        ctx.fillStyle = '#0d1117';
-        ctx.beginPath(); ctx.arc(px, py+gh*0.5, 5, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = '#4a4f5c'; ctx.lineWidth = 1; ctx.stroke();
-        ctx.fillStyle = '#5088cc';
-        ctx.beginPath(); ctx.arc(px, py+gh*0.5, 2, 0, Math.PI*2); ctx.fill();
-
-        // GPS anten
-        ctx.fillStyle = '#58a6ff';
-        ctx.beginPath(); ctx.arc(px, py-gh-6, 3, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = '#555d6b'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(px, py-gh-3); ctx.lineTo(px, py-gh+1); ctx.stroke();
-
-        // Koordinat
-        ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Consolas'; ctx.textAlign = 'center';
-        ctx.fillText(`(${this.drone.x.toFixed(0)}, ${this.drone.y.toFixed(0)})`, px, py-38);
-
-        // Mod
-        const colors = { 'Havada':'#3fb950', 'Eve Dönüyor':'#d29922', 'Acil İniş':'#f85149', 'Yerde':'#8b949e' };
-        ctx.fillStyle = colors[this.drone.mode] || '#8b949e';
-        ctx.font = 'bold 9px Consolas';
-        ctx.fillText(`▸ ${this.drone.mode.toUpperCase()}`, px, py+42);
+        return score;
     }
 
-    _drawWind(w, h) {
-        const ctx = this.ctx;
-        const cx = w-55, cy = 50, r = 22;
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-        ctx.fillStyle = 'rgba(22,27,34,0.9)'; ctx.fill();
-        ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1; ctx.stroke();
-        ctx.fillStyle = '#8b949e'; ctx.font = '8px Consolas'; ctx.textAlign = 'center';
-        ctx.fillText('N', cx, cy-r-4);
-        const rad = this.wind.dir * Math.PI / 180;
-        const ax = cx + Math.sin(rad)*(r-5), ay = cy - Math.cos(rad)*(r-5);
-        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ax, ay);
-        ctx.strokeStyle = '#58a6ff'; ctx.lineWidth = 3; ctx.stroke();
-        // Ok ucu
-        const angle = Math.atan2(ay-cy, ax-cx);
-        ctx.beginPath();
-        ctx.moveTo(ax, ay);
-        ctx.lineTo(ax-8*Math.cos(angle-0.4), ay-8*Math.sin(angle-0.4));
-        ctx.lineTo(ax-8*Math.cos(angle+0.4), ay-8*Math.sin(angle+0.4));
-        ctx.closePath(); ctx.fillStyle = '#58a6ff'; ctx.fill();
-        ctx.fillStyle = '#58a6ff'; ctx.font = 'bold 9px Consolas';
-        ctx.fillText(`💨 ${this.wind.speed}m/s`, cx, cy+r+14);
-    }
-
-    _animate() {
-        if (this.drone.motor) this.propAngle = (this.propAngle + 25) % 360;
-        this.draw();
-        requestAnimationFrame(() => this._animate());
+    _calculateScore(completed, total, startBat, duration) {
+        if (total === 0) return { points: 0, grade: 'F', duration: 0, distance: 0, batteryLeft: this.battery };
+        const completion = (completed / total) * 40;
+        const efficiency = (this.battery / Math.max(startBat, 1)) * 30;
+        const speed = Math.max(0, 30 - duration * 0.3);
+        const points = Math.min(100, Math.round(completion + efficiency + speed));
+        let grade = 'F';
+        if (points >= 90) grade = 'A';
+        else if (points >= 80) grade = 'B';
+        else if (points >= 70) grade = 'C';
+        else if (points >= 60) grade = 'D';
+        return {
+            points, grade,
+            duration: Math.round(duration),
+            distance: Math.round(this.stats.distance),
+            batteryLeft: Math.round(this.battery),
+            completed: `${completed}/${total}`,
+            photos: this.stats.photos,
+            cargo: this.stats.cargo,
+            maxAlt: Math.round(this.stats.maxAlt),
+            collectedName: this.stats.collectedLetters ? this.stats.collectedLetters.join('') : ''
+        };
     }
 }
+
+// ═══ SEVİYE SİSTEMİ ═══
+const LEVELS = {
+    1: { name:'Başlangıç', wind:false, windSpeed:0, obstacles:[], nfz:[], batteryBonus:20 },
+    2: { name:'Kolay', wind:true, windSpeed:2,
+         obstacles:[{x:25,y:15,size:6,type:'tree'}], nfz:[], batteryBonus:10 },
+    3: { name:'Orta', wind:true, windSpeed:4,
+         obstacles:[{x:20,y:10,size:8,type:'building'},{x:-15,y:25,size:6,type:'tree'}],
+         nfz:[{x:-30,y:-30,radius:12,name:'Askeri Alan'}], batteryBonus:0 },
+    4: { name:'Zor', wind:true, windSpeed:7,
+         obstacles:[{x:15,y:10,size:8,type:'building'},{x:-10,y:20,size:6,type:'tree'},{x:30,y:-5,size:10,type:'building'}],
+         nfz:[{x:-25,y:-20,radius:15,name:'Havaalanı'},{x:40,y:30,radius:10,name:'Askeri Alan'}], batteryBonus:-10 },
+    5: { name:'Uzman', wind:true, windSpeed:10,
+         obstacles:[{x:10,y:5,size:7,type:'building'},{x:-15,y:15,size:5,type:'tree'},{x:25,y:-10,size:9,type:'building'},{x:-5,y:35,size:6,type:'tree'},{x:35,y:20,size:8,type:'building'}],
+         nfz:[{x:-20,y:-15,radius:12,name:'NFZ-A'},{x:30,y:35,radius:10,name:'NFZ-B'},{x:-35,y:25,radius:8,name:'NFZ-C'}], batteryBonus:-20 }
+};
+
+// ═══ ROZET SİSTEMİ ═══
+const BADGES = {
+    ilk_ucus:  { icon:'🛫', name:'İlk Uçuş',      desc:'İlk görevi tamamla' },
+    pilot:     { icon:'✈️', name:'Pilot',          desc:'5 görev tamamla' },
+    kaptan:    { icon:'🎖️', name:'Kaptan Pilot',   desc:'15 görev tamamla' },
+    fotograf:  { icon:'📸', name:'Fotoğrafçı',     desc:'10 fotoğraf çek' },
+    kargoci:   { icon:'📦', name:'Kargoci',        desc:'5 kargo teslim et' },
+    yuksek:    { icon:'🏔️', name:'Yüksek Uçuş',   desc:'50m yüksekliğe ulaş' },
+    maraton:   { icon:'🏃', name:'Maratoncı',      desc:'500m toplam mesafe' },
+    puan_a:    { icon:'🏆', name:'A Notu',         desc:'Bir görevde A notu al' },
+    ruzgar:    { icon:'🌪️', name:'Fırtına Avcısı', desc:'7+ m/s rüzgarda görev tamamla' },
+    harf_oyunu:{ icon:'🔤', name:'Harf Avcısı',    desc:'Harf tarlasında adını başarıyla yazdın' },
+    seviye5:   { icon:'💀', name:'Uzman Pilot',    desc:'Seviye 5 tamamla' }
+};
