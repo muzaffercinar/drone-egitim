@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 Drone Eğitim Platformu</title>
-    <link rel="stylesheet" href="css/style.css?v=5">
+    <title>🚁 Drone Eğitim Platformu</title>
+    <link rel="stylesheet" href="css/style.css?v=4">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -30,7 +30,7 @@
             <!-- Floating aircraft silhouettes -->
             <div class="floating-aircraft ac-1">✈</div>
             <div class="floating-aircraft ac-2">✈</div>
-            <div class="floating-aircraft ac-3">🚁</div>
+            <div class="floating-aircraft ac-3">🛩️</div>
             <!-- Runway lights -->
             <div class="runway-lights">
                 <span class="rw-light"></span><span class="rw-light"></span><span class="rw-light"></span>
@@ -112,7 +112,7 @@
                     <span class="tab-icon">✈</span> Giriş Yap
                 </button>
                 <button class="tab-btn" onclick="showTab('register')">
-                    <span class="tab-icon">🚁</span> Kayıt Ol
+                    <span class="tab-icon">🛩️</span> Kayıt Ol
                 </button>
             </div>
 
@@ -177,7 +177,7 @@
         <nav class="topbar">
             <div class="topbar-left">
                 <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
-                <span class="logo">🚀 Drone Eğitim</span>
+                <span class="logo">🚁 Drone Eğitim</span>
                 <span id="student-name" class="user-name"></span>
             </div>
             <div class="topbar-center" id="topbar-nav">
@@ -209,10 +209,7 @@
             <div class="mobile-blocks-bar">
                 <button class="block-btn-m" style="background:#6e7681" onclick="addBlock('MOTOR_AC')">⚙️</button>
                 <button class="block-btn-m" style="background:#238636" onclick="addBlock('HAVALAN')">🚀</button>
-                <button class="block-btn-m" style="background:#0ea5e9" onclick="addBlock('YUKSEL')">🔼</button>
-                <button class="block-btn-m" style="background:#0ea5e9" onclick="addBlock('ALCAL')">🔽</button>
                 <button class="block-btn-m" style="background:#1f6feb" onclick="addBlock('ROTA_GIT')">📍</button>
-                <button class="block-btn-m" style="background:#ab7df8" onclick="addBlock('EVE_DON')">🏠</button>
                 <button class="block-btn-m" style="background:#8b5cf6" onclick="addBlock('FOTO_CEK')">📸</button>
                 <button class="block-btn-m" style="background:#d29922" onclick="addBlock('BEKLE')">⏳</button>
                 <button class="block-btn-m" style="background:#f0883e" onclick="addBlock('KARGO_BIRAK')">📦</button>
@@ -235,10 +232,7 @@
                         <div class="block-palette">
                             <button class="block-btn" style="background:#6e7681" onclick="addBlock('MOTOR_AC')">⚙️ Motor Aç</button>
                             <button class="block-btn" style="background:#238636" onclick="addBlock('HAVALAN')">🚀 Havalan</button>
-                            <button class="block-btn" style="background:#0ea5e9" onclick="addBlock('YUKSEL')">🔼 Yüksel</button>
-                            <button class="block-btn" style="background:#0ea5e9" onclick="addBlock('ALCAL')">🔽 Alçal</button>
                             <button class="block-btn" style="background:#1f6feb" onclick="addBlock('ROTA_GIT')">📍 Git</button>
-                            <button class="block-btn" style="background:#ab7df8" onclick="addBlock('EVE_DON')">🏠 Eve Dön</button>
                             <button class="block-btn" style="background:#8b5cf6" onclick="addBlock('FOTO_CEK')">📸 Foto</button>
                             <button class="block-btn" style="background:#d29922" onclick="addBlock('BEKLE')">⏳ Bekle</button>
                             <button class="block-btn" style="background:#f0883e" onclick="addBlock('KARGO_BIRAK')">📦 Kargo</button>
@@ -303,7 +297,7 @@
                     <p class="subtitle">Kendi drone'unu tasarla ve serbest uçuş yap!</p>
                     <div class="design-grid">
                         <div class="design-card">
-                            <h3>🚁 Gövde Tipi</h3>
+                            <h3>🛩️ Gövde Tipi</h3>
                             <div id="frame-options" class="design-options"></div>
                         </div>
                         <div class="design-card">
@@ -409,10 +403,10 @@
     <!-- Confetti canvas -->
     <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
 
-    <script src="js/firebase-config.js?v=5"></script>
-    <script src="js/missions.js?v=5"></script>
-    <script src="js/drone-canvas.js?v=5"></script>
-    <script src="js/drone-sim.js?v=5"></script>
-    <script src="js/app.js?v=5"></script>
+    <script src="js/firebase-config.js?v=2"></script>
+    <script src="js/missions.js?v=2"></script>
+    <script src="js/drone-canvas.js?v=2"></script>
+    <script src="js/drone-sim.js?v=2"></script>
+    <script src="js/app.js?v=2"></script>
 </body>
 </html>
