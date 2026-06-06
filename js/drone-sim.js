@@ -59,7 +59,6 @@ class DroneSim {
     _checkObstacle(px, py, pz) {
         for (const o of this.obstacles) {
             const distXY = Math.sqrt((px - o.x) ** 2 + (py - o.y) ** 2);
-            // Z ekseni (Yükseklik) kontrolü
             const objHeight = o.type === 'building' ? 20 : 10; 
             if (distXY < (o.size / 2 + 3) && pz <= objHeight) {
                 this._log(`💥 ENGEL: ${o.type} (${o.x},${o.y}) yüksekliği kurtarmadı! Durduruluyor.`, 'error');
@@ -128,7 +127,6 @@ class DroneSim {
 
     _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-    // ═══ KOMUTLAR ═══
     async motorAc() {
         if (this.motorOn) { this._log('Motorlar zaten açık.', 'warn'); return true; }
         this.motorOn = true;
@@ -232,7 +230,6 @@ class DroneSim {
         this._log('🏠 EVE DÖNÜŞ (RTH) BAŞLADI!', 'warn');
         this.mode = 'Eve Dönüyor'; this._update();
         
-        // Önce güvenli bir yüksekliğe (20m) çık ki engellere çarpmasın
         if (this.z < 20) {
             this._log('🔼 Güvenli irtifaya çıkılıyor...');
             await this._animatedMove(this.x, this.y, 20, 5);
@@ -249,7 +246,6 @@ class DroneSim {
         return true;
     }
 
-    // ═══ GÖREV ÇALIŞTIR ═══
     async runMission(tasks) {
         this.cancelled = false;
         const startTime = Date.now();
@@ -276,11 +272,12 @@ class DroneSim {
                 case 'HAVALAN': ok = await this.havalan(Number(t.params?.height || 10)); break;
                 case 'YUKSEL': ok = await this.yuksel(Number(t.params?.amount || 5)); break;
                 case 'ALCAL': ok = await this.alcal(Number(t.params?.amount || 5)); break;
+                
+                // HATA BURADAYDI, DÜZELTİLDİ:
                 case 'ROTA_GIT': 
-                    let eklenecekX = Number(t.params?.x || 0);
-                    let eklenecekY = Number(t.params?.y || 0);
-                    ok = await this.rotaGit(this.x + eklenecekX, this.y + eklenecekY); 
+                    ok = await this.rotaGit(this.x + Number(t.params?.x || 0), this.y + Number(t.params?.y || 0)); 
                     break;
+                    
                 case 'EVE_DON': ok = await this.eveDon(); break;
                 case 'FOTO_CEK': ok = await this.fotoCek(); break;
                 case 'BEKLE': ok = await this.bekle(Number(t.params?.seconds || 3)); break;
@@ -329,7 +326,6 @@ class DroneSim {
     }
 }
 
-// ═══ SEVİYE SİSTEMİ ═══
 const LEVELS = {
     1: { name:'Başlangıç', wind:false, windSpeed:0, obstacles:[], nfz:[], batteryBonus:20 },
     2: { name:'Kolay', wind:true, windSpeed:2,
@@ -340,22 +336,4 @@ const LEVELS = {
     4: { name:'Zor', wind:true, windSpeed:7,
          obstacles:[{x:15,y:10,size:8,type:'building'},{x:-10,y:20,size:6,type:'tree'},{x:30,y:-5,size:10,type:'building'}],
          nfz:[{x:-25,y:-20,radius:15,name:'Havaalanı'},{x:40,y:30,radius:10,name:'Askeri Alan'}], batteryBonus:-10 },
-    5: { name:'Uzman', wind:true, windSpeed:10,
-         obstacles:[{x:10,y:5,size:7,type:'building'},{x:-15,y:15,size:5,type:'tree'},{x:25,y:-10,size:9,type:'building'},{x:-5,y:35,size:6,type:'tree'},{x:35,y:20,size:8,type:'building'}],
-         nfz:[{x:-20,y:-15,radius:12,name:'NFZ-A'},{x:30,y:35,radius:10,name:'NFZ-B'},{x:-35,y:25,radius:8,name:'NFZ-C'}], batteryBonus:-20 }
-};
-
-// ═══ ROZET SİSTEMİ ═══
-const BADGES = {
-    ilk_ucus:  { icon:'🛫', name:'İlk Uçuş',      desc:'İlk görevi tamamla' },
-    pilot:     { icon:'✈️', name:'Pilot',          desc:'5 görev tamamla' },
-    kaptan:    { icon:'🎖️', name:'Kaptan Pilot',   desc:'15 görev tamamla' },
-    fotograf:  { icon:'📸', name:'Fotoğrafçı',     desc:'10 fotoğraf çek' },
-    kargoci:   { icon:'📦', name:'Kargoci',        desc:'5 kargo teslim et' },
-    yuksek:    { icon:'🏔️', name:'Yüksek Uçuş',   desc:'50m yüksekliğe ulaş' },
-    maraton:   { icon:'🏃', name:'Maratoncı',      desc:'500m toplam mesafe' },
-    puan_a:    { icon:'🏆', name:'A Notu',         desc:'Bir görevde A notu al' },
-    ruzgar:    { icon:'🌪️', name:'Fırtına Avcısı', desc:'7+ m/s rüzgarda görev tamamla' },
-    harf_oyunu:{ icon:'🔤', name:'Harf Avcısı',    desc:'Harf tarlasında adını başarıyla yazdın' },
-    seviye5:   { icon:'💀', name:'Uzman Pilot',    desc:'Seviye 5 tamamla' }
-};
+    5:
